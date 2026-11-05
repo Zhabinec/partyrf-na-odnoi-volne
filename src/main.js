@@ -7,11 +7,13 @@ const soundToggle = document.querySelector('#sound-toggle');
 let soundOn = true;
 let audio;
 let output;
-let beat = 0;
-let musicPhase;
-
-const bassNotes = [45, null, null, 45, null, 52, null, 55, 57, null, null, 55, null, 52, 48, null];
-const leadNotes = [null, null, 69, null, 72, null, null, 76, null, 74, null, 72, null, 69, null, null];
+const clips = new Map();
+const effects = {
+  paper: ['paper-slide', .44, .6],
+  drum: ['drum-roll', .48, 2.3],
+  applause: ['applause', .48, 2.4],
+  tick: ['clock-tick', .35, .5],
+};
 
 function unlockSound() {
   if (!soundOn || !window.AudioContext) return;
@@ -19,79 +21,32 @@ function unlockSound() {
     audio = new AudioContext();
     output = audio.createGain();
     output.connect(audio.destination);
+    for (const [file] of Object.values(effects)) {
+      clips.set(file, fetch('./assets/' + file + '.mp3')
+        .then(response => response.ok ? response.arrayBuffer() : Promise.reject(new Error('Sound unavailable')))
+        .then(buffer => audio.decodeAudioData(buffer))
+        .catch(() => null));
+    }
   }
   if (audio.state === 'suspended') void audio.resume().catch(() => {});
 }
 
-function canPlay() {
-  return soundOn && !document.hidden && audio?.state === 'running';
-}
-
-function tone(note, at, length, volume, type = 'triangle') {
-  const voice = audio.createOscillator();
-  const envelope = audio.createGain();
-  voice.type = type;
-  voice.frequency.value = 440 * 2 ** ((note - 69) / 12);
-  envelope.gain.setValueAtTime(.001, at);
-  envelope.gain.linearRampToValueAtTime(volume, at + .009);
-  envelope.gain.exponentialRampToValueAtTime(.001, at + length);
-  voice.connect(envelope).connect(output);
-  voice.start(at);
-  voice.stop(at + length);
-}
-
-function musicBeat() {
-  const phase = state?.phase;
-  const playing = phase === 'lobby' || phase === 'guessing';
-  if (!canPlay() || !playing || (phase === 'guessing' && state.deadline - Date.now() - offset <= 8000)) {
-    musicPhase = undefined;
-    return;
-  }
-  if (musicPhase !== phase) {
-    musicPhase = phase;
-    beat = 0;
-  }
-  const index = beat % bassNotes.length;
-  const transpose = Math.floor(beat / bassNotes.length) % 2 ? -5 : 0;
-  const at = audio.currentTime;
-  const bass = bassNotes[index];
-  const lead = leadNotes[index];
-  const lobby = phase === 'lobby';
-  if (bass !== null) tone(bass + transpose, at, .15, lobby ? .09 : .044);
-  if (lobby && lead !== null) {
-    tone(lead + transpose, at, .12, .045, 'sine');
-    tone(lead + transpose - 5, at + .03, .1, .023);
-  }
-  if (index % 4 === 0) tone(30, at, .07, lobby ? .075 : .045, 'sine');
-  if (index % 4 === 2) tone(96, at, .038, lobby ? .023 : .012, 'square');
-  beat++;
-}
-
-function playCue(kind) {
-  if (!canPlay()) return;
-  const notes = {
-    accepted: [72, 76],
-    turn: [69, 72, 76],
-    sealed: [72, 67],
-  }[kind];
-  notes.forEach((note, i) => tone(note, audio.currentTime + i * .065, .12, .065));
-}
-
-function playFinale() {
-  if (!canPlay()) return;
-  const noise = audio.createBuffer(1, Math.round(audio.sampleRate * .07), audio.sampleRate);
-  const samples = noise.getChannelData(0);
-  for (let i = 0; i < samples.length; i++) samples[i] = (Math.random() * 2 - 1) * (1 - i / samples.length) ** 2;
+async function playEffect(kind) {
+  if (!soundOn || document.hidden || audio?.state !== 'running') return;
+  const step = state?.step;
+  const [file, volume, limit] = effects[kind];
+  const buffer = await clips.get(file);
+  if (!buffer || !soundOn || document.hidden || state?.step !== step) return;
+  const voice = audio.createBufferSource();
+  const gain = audio.createGain();
+  const duration = Math.min(limit, buffer.duration);
   const start = audio.currentTime;
-  for (let i = 0; i < 12; i++) {
-    const hit = audio.createBufferSource();
-    const gain = audio.createGain();
-    hit.buffer = noise;
-    gain.gain.value = i === 11 ? .16 : .04 + i * .006;
-    hit.connect(gain).connect(output);
-    hit.start(start + i * .073);
-  }
-  [69, 73, 76, 81].forEach((note, i) => tone(note, start + .83 + i * .055, .28, .075));
+  voice.buffer = buffer;
+  gain.gain.setValueAtTime(volume, start);
+  gain.gain.setValueAtTime(volume, start + Math.max(0, duration - .12));
+  gain.gain.linearRampToValueAtTime(0, start + duration);
+  voice.connect(gain).connect(output);
+  voice.start(start, 0, duration);
 }
 
 soundToggle.addEventListener('click', () => {
@@ -112,19 +67,6 @@ let lastApplied = 0;
 let offset = 0;
 let busy = false;
 let lastTick;
-
-function playClockTick(seconds) {
-  if (!canPlay()) return;
-  const at = audio.currentTime;
-  const hit = audio.createOscillator();
-  const gain = audio.createGain();
-  hit.frequency.value = seconds <= 3 ? 920 : 590;
-  gain.gain.setValueAtTime(.06, at);
-  gain.gain.exponentialRampToValueAtTime(.001, at + .065);
-  hit.connect(gain).connect(output);
-  hit.start(at);
-  hit.stop(at + .07);
-}
 
 function message(text = '') {
   feedback.textContent = text;
@@ -152,7 +94,7 @@ function updateClock() {
   const tick = state.step + ':' + seconds;
   if (tick !== lastTick) {
     lastTick = tick;
-    if (seconds > 0 && seconds <= 8 && !document.hidden) playClockTick(seconds);
+    if (seconds > 0 && seconds <= 8 && !document.hidden) void playEffect('tick');
   }
 }
 
@@ -169,9 +111,14 @@ function applyState(next, id) {
     app.classList.add('in-room');
     app.innerHTML = roomScreen(state);
     if (changesPage) app.firstElementChild.classList.add('page-turn');
-    if (changesPage && state.phase === 'finished') playFinale();
-    if (changesPage && state.phase === 'sealed') playCue('sealed');
-    if (changesPage && state.phase === 'guessing') playCue('turn');
+    if (changesPage && state.phase === 'intro') void playEffect(state.nextPhase === 'finished' ? 'drum' : 'paper');
+    if (changesPage && state.phase === 'sealed') void playEffect('paper');
+    if (changesPage && state.phase === 'finished' && Object.values(state.scores).some(score => score > 0)) {
+      const finalStep = state.step;
+      setTimeout(() => {
+        if (state?.step === finalStep && state.phase === 'finished') void playEffect('applause');
+      }, 120);
+    }
     roomLabel.textContent = 'КОМНАТА ' + state.code;
     const invite = document.querySelector('#invite-link');
     if (invite) invite.value = inviteUrl();
@@ -237,7 +184,7 @@ async function action(type, value) {
   const step = state.step;
   const data = await request('rooms/' + session.code, { type, value, step }, session.token);
   applyState(data.state, id);
-  if (!data.error && data.state.step === step) playCue('accepted');
+  if (!data.error && data.state.step === step) void playEffect('paper');
   message(data.error);
 }
 
@@ -321,4 +268,3 @@ if (session) app.textContent = 'Подключаемся к комнате…';
 else showEntrance();
 void poll();
 setInterval(updateClock, 100);
-setInterval(musicBeat, 145);

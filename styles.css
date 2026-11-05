@@ -267,11 +267,16 @@ input[type="range"]::-moz-range-thumb {
   background: var(--sand);
   border-radius: 1.1rem;
   box-shadow: 0 .35rem 0 var(--coral);
-  animation: winner-drop 480ms 800ms cubic-bezier(.19,1.35,.37,1) both;
+  animation: winner-drop 480ms 120ms cubic-bezier(.19,1.35,.37,1) both;
 }
 .winner-card h2 { margin-block: .35rem; }
 .winner-card p { font-weight: 850; }
-.drum-caption { position: absolute; inset: 0; display: grid; place-items: center; color: var(--foam); font-size: 2rem; font-weight: 950; animation: drum-tease 800ms ease-out both; }
+.round:has(.show-card) { border: 0; background: transparent; box-shadow: none; }
+.stage.in-room:has(.show-card) { display: grid; grid-template-columns: minmax(0, 1fr); }
+.show-card { text-align: center; padding-block: clamp(2rem, 9vh, 6rem); }
+.show-card h1 { font-size: clamp(2.5rem, 7vw, 6rem); text-transform: uppercase; }
+.show-card h1 em { display: inline-block; animation: winner-drop 460ms 180ms cubic-bezier(.19,1.35,.37,1) both; }
+.show-card > p:last-child { margin-top: 1rem; color: var(--muted); font-size: clamp(1rem, 2.8vw, 1.4rem); }
 .confetti { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .confetti i {
   --spread: 10%;
@@ -282,10 +287,10 @@ input[type="range"]::-moz-range-thumb {
   width: .5rem;
   height: .8rem;
   background: var(--foam);
-  animation: confetti-fall 850ms 920ms ease-in both;
+  animation: confetti-fall 850ms 200ms ease-in both;
 }
 .confetti i:nth-child(3n) { background: var(--coral); --spin: -210deg; }
-.confetti i:nth-child(2n) { background: var(--tide); animation-delay: 1.02s; }
+.confetti i:nth-child(2n) { background: var(--tide); animation-delay: 300ms; }
 .confetti i:nth-child(1) { --spread: 6%; }
 .confetti i:nth-child(2) { --spread: 14%; }
 .confetti i:nth-child(3) { --spread: 22%; }
@@ -298,9 +303,9 @@ input[type="range"]::-moz-range-thumb {
 .confetti i:nth-child(10) { --spread: 78%; }
 .confetti i:nth-child(11) { --spread: 86%; }
 .confetti i:nth-child(12) { --spread: 94%; }
-.final-lineup { animation: marker-rise 390ms 1.24s ease-out both; }
-.final-lineup > .roster li { animation: marker-rise 300ms 1.36s ease-out both; }
-.final-lineup > .roster li:nth-child(2n) { animation-delay: 1.44s; }
+.final-lineup { animation: marker-rise 390ms 540ms ease-out both; }
+.final-lineup > .roster li { animation: marker-rise 300ms 660ms ease-out both; }
+.final-lineup > .roster li:nth-child(2n) { animation-delay: 740ms; }
 .recap-deck { display: grid; gap: .65rem; margin-block: .85rem 1.2rem; }
 .recap-card { padding: .8rem 1rem; border: 1px solid var(--edge); border-radius: .85rem; background: var(--field); }
 .recap-card summary { cursor: pointer; font-weight: 750; overflow-wrap: anywhere; }
@@ -311,7 +316,6 @@ input[type="range"]::-moz-range-thumb {
   from { opacity: 0; transform: translateY(1.5rem) rotate(-5deg) scale(.82); }
   to { opacity: 1; transform: none; }
 }
-@keyframes drum-tease { 0%, 65% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes confetti-fall {
   0% { opacity: 0; transform: translateY(0) rotate(0); }
   20% { opacity: 1; }
@@ -357,6 +361,6 @@ input[type="range"]::-moz-range-thumb {
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  .drum-caption, .confetti { display: none; }
+  .confetti { display: none; }
   .clock-hand { display: none; }
 }

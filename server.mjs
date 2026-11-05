@@ -8,6 +8,10 @@ const roomLifetime = 6 * 60 * 60 * 1000;
 const assets = new Map([
   ['/', ['index.html', 'text/html']],
   ['/styles.css', ['styles.css', 'text/css']],
+  ['/assets/paper-slide.mp3', ['assets/paper-slide.mp3', 'audio/mpeg']],
+  ['/assets/drum-roll.mp3', ['assets/drum-roll.mp3', 'audio/mpeg']],
+  ['/assets/applause.mp3', ['assets/applause.mp3', 'audio/mpeg']],
+  ['/assets/clock-tick.mp3', ['assets/clock-tick.mp3', 'audio/mpeg']],
   ['/src/main.js', ['src/main.js', 'text/javascript']],
   ['/src/ui.js', ['src/ui.js', 'text/javascript']],
 ]);

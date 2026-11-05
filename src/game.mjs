@@ -1,5 +1,5 @@
 export const limits = { minPlayers: 3, maxPlayers: 10, name: 24, topic: 72 };
-export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000, sealed: 1800 };
+export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000, sealed: 1800, intro: 2400 };
 
 export function newGame() {
   return { phase: 'lobby', step: 0, deadline: null };
@@ -9,6 +9,11 @@ function enter(game, phase, now) {
   game.phase = phase;
   game.step++;
   game.deadline = durations[phase] ? now + durations[phase] : null;
+}
+
+function announce(game, nextPhase, now) {
+  game.nextPhase = nextPhase;
+  enter(game, 'intro', now);
 }
 
 function shuffle(items, random) {
@@ -54,6 +59,9 @@ function sealRound(game, now) {
 
 function advance(game, now, random) {
   switch (game.phase) {
+    case 'intro':
+      enter(game, game.nextPhase, now);
+      break;
     case 'topics': {
       const entries = Object.entries(game.topics);
       if (entries.length < limits.minPlayers) {
@@ -65,7 +73,7 @@ function advance(game, now, random) {
       const topics = shuffle(entries.map(([, topic]) => topic), random);
       game.assigned = Object.fromEntries(game.active.map((id, i) => [id, topics[i]]));
       game.scores = Object.fromEntries(game.active.map(id => [id, 0]));
-      enter(game, 'rating', now);
+      announce(game, 'rating', now);
       break;
     }
     case 'rating':
@@ -92,7 +100,9 @@ function advance(game, now, random) {
 function nextTurn(game, now) {
   game.turnIndex++;
   game.guesses = {};
-  enter(game, game.turnIndex === game.turns.length ? 'finished' : 'guessing', now);
+  if (game.turnIndex === game.turns.length) announce(game, 'finished', now);
+  else if (game.turnIndex === 0) announce(game, 'guessing', now);
+  else enter(game, 'guessing', now);
 }
 
 export function tick(game, now, random = Math.random) {
@@ -109,7 +119,7 @@ export function act(game, { id, isHost, players }, action, now, random = Math.ra
       active: players, topics: {}, assigned: {}, ratings: {}, scores: {},
       turns: [], guesses: {}, results: [], notice: '', hadDebate: false, highlight: null,
     });
-    enter(game, 'topics', now);
+    announce(game, 'topics', now);
     return;
   }
   if (!game.active?.includes(id)) return 'Дождись следующей партии.';
@@ -141,6 +151,7 @@ export function view(game, id) {
   const { phase, step, deadline } = game;
   const data = { phase, step, deadline, duration: durations[phase] ?? null, notice: game.notice };
   if (phase === 'lobby') return data;
+  if (phase === 'intro') return { ...data, nextPhase: game.nextPhase };
   if (phase === 'finished') return { ...data, scores: game.scores, results: game.results, highlight: game.highlight };
   if (phase === 'sealed') return { ...data, turn: [game.turnIndex + 1, game.turns.length] };
   data.active = game.active.includes(id);

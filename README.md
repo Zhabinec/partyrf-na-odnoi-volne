@@ -25,6 +25,8 @@ node server.mjs
 
 ## Модули
 
+Музыки в игре нет. Перебивки, отсчёт и финал используют [бесплатные эффекты Mixkit](https://mixkit.co/license/): [Paper slide](https://assets.mixkit.co/active_storage/sfx/1530/1530-preview.mp3), [Clock ticker single](https://assets.mixkit.co/active_storage/sfx/1061/1061-preview.mp3), [Tension and suspense drum roll](https://assets.mixkit.co/active_storage/sfx/577/577-preview.mp3) и [Audience light applause](https://assets.mixkit.co/active_storage/sfx/354/354-preview.mp3).
+
 - `src/game.mjs` — правила, фазы, счёт и персональные снимки состояния. Модуль не зависит от браузера и HTTP.
 - `server.mjs` — комнаты, сессии игроков, серверные таймеры и HTTP API. До раскрытия клиенту доступны только данные для его текущего действия.
 - `src/main.js` — запросы к комнате и обработка действий.

@@ -101,6 +101,17 @@ function revealScale(rating, guesses, winners) {
 
 function roundScreen(state) {
   const nameOf = id => escape(state.players.find(player => player.id === id)?.name ?? 'Игрок');
+  if (state.phase === 'intro') {
+    const lines = {
+      topics: ['РАЗОГРЕВ', 'А теперь —', 'подкиньте тему!', 'Что расколет вашу компанию на два лагеря?'],
+      rating: ['СЕКРЕТНЫЙ ЭТАП', 'А вот и', 'ваши темы!', 'Ставьте честную оценку. Подглядывать нельзя.'],
+      guessing: ['ГЛАВНЫЙ ЗАПЛЫВ', 'Как хорошо вы', 'знаете друг друга?', 'Посмотрим, кто попадёт в чужую волну.'],
+      finished: ['ФИНАЛ', 'И победил…', 'Так, где барабанщик?', 'Сейчас узнаем, кто поймал волну.'],
+    };
+    const [label, first, second, caption] = lines[state.nextPhase];
+    return `<section class="show-card">${kicker(label)}
+      <h1>${first}<br><em>${second}</em></h1><p>${caption}</p></section>`;
+  }
   if (state.phase === 'lobby') {
     return `${kicker('ЛОББИ · ' + state.players.length + ' / 10')}
       <h1>Собираем<br><em>компанию</em></h1>
@@ -117,7 +128,6 @@ function roundScreen(state) {
     return `${kicker('ФИНАЛ')}<h1>Кто поймал <em>волну?</em></h1>
       <section class="winner-stage">
         ${best ? '<div class="confetti" aria-hidden="true">' + '<i></i>'.repeat(12) + '</div>' : ''}
-        <p class="drum-caption" aria-hidden="true">Бр-р-р-р…</p>
         <div class="winner-card">
           <p>${best ? (winners.length > 1 ? 'Делят победу' : 'Победитель') : 'Партия окончена'}</p>
           <h2>${best ? winners.join(', ') : 'Волна унесла все очки'}</h2>
@@ -190,7 +200,7 @@ export function roomScreen(state) {
   return `<section class="panel round">
     <section class="round-status" aria-label="Время и готовность">
       <span id="progress"></span>
-      ${state.deadline !== null && state.phase !== 'sealed' ? `
+      ${state.deadline !== null && !['sealed', 'intro'].includes(state.phase) ? `
         <div class="round-clock">
           <span class="clock-face" aria-hidden="true"><span class="clock-hand"></span></span>
           <span class="clock-readout"><small>ДО КОНЦА ХОДА</small><time id="timer" role="timer"></time></span>
