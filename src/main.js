@@ -1,4 +1,4 @@
-import { entrance, percent, roomScreen } from './ui.js';
+import { entrance, percent, roomScreen, situations } from './ui.js';
 
 const app = document.querySelector('#app');
 const feedback = document.querySelector('#feedback');
@@ -163,6 +163,11 @@ app.addEventListener('click', event => {
         input.select();
         message('Скопируй выделенную ссылку.');
       }
+    } else if (control.dataset.action === 'suggest') {
+      const input = document.querySelector('#topic');
+      const options = situations.filter(situation => situation !== input.value);
+      input.value = options[Math.floor(Math.random() * options.length)];
+      input.focus();
     } else await action(control.dataset.action);
   }, control);
 });

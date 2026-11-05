@@ -9,6 +9,21 @@ export function percent(value) {
 const button = (label, action) => `<button type="button" data-action="${action}">${label}</button>`;
 const kicker = text => `<p class="kicker">${text}</p>`;
 
+export const situations = [
+  'Друг просит скинуть ему 47 ₽ за такси',
+  'Отпуск с друзьями по расписанию',
+  'Заказать одну пиццу с ананасом на всех',
+  'Прийти на вечеринку на час раньше',
+  'Слушать голосовые на двойной скорости',
+  'Петь в караоке песню, которую знаешь только по припеву',
+  'Смотреть финал сериала без друга, с которым начал',
+  'Уйти с вечеринки по-английски',
+  'Делить счёт поровну, когда ты заказал только чай',
+  'Поехать на выходные в случайный город',
+  'Включить общий плейлист и дать всем по одному треку',
+  'Принести на день рождения еду вместо подарка',
+];
+
 export function entrance(code) {
   return `
     <section class="intro">
@@ -95,6 +110,11 @@ function roundScreen(state) {
     const winners = Object.keys(state.scores).filter(id => state.scores[id] === best).map(nameOf);
     return `${kicker('ФИНАЛ')}<h1>${best ? 'На одной <em>волне!</em>' : 'Партия окончена'}</h1>
       <p class="lede">${best ? (winners.length > 1 ? 'Победители — ' : 'Победитель — ') + winners.join(', ') : 'В этой партии никто не набрал очков.'}</p>
+      ${state.highlight ? `<aside class="why-card">
+        <strong>Момент партии</strong>
+        <p>«${escape(state.highlight.topic)}»</p>
+        <p>Средняя догадка — ${percent(state.highlight.average)}. Оценка игрока ${nameOf(state.highlight.subject)} — ${percent(state.highlight.rating)}.</p>
+      </aside>` : ''}
       ${roster(state, true)}${state.host === state.me ? button('Сыграть ещё', 'start') : waiting('Хост может начать новую партию.')}`;
   }
   if (state.phase === 'topics') {
@@ -103,6 +123,7 @@ function roundScreen(state) {
       ${state.done ? waiting('Тема принята. Ждём остальных.') : `
       <form data-form="topic"><label for="topic">Твоя тема</label>
         <input id="topic" name="value" maxlength="72" required placeholder="Например, деньги, караоке или ранние подъёмы">
+        <button type="button" class="secondary" data-action="suggest">Подкинь ситуацию</button>
         <button type="submit">Отправить тему</button>
       </form>`}`;
   }
@@ -116,6 +137,14 @@ function roundScreen(state) {
   }
   const turn = state.turn.join(' / ');
   const topic = `<p class="topic">${escape(state.topic)}</p>`;
+  if (state.phase === 'debate') {
+    const speaks = state.debate.some(([id]) => id === state.me);
+    return `${kicker('СПОР · ' + turn)}<h1>Разные <em>берега</em></h1>${topic}
+      <p class="lede">Какую оценку поставил игрок ${nameOf(state.subject)}?</p>
+      <ul class="debate-picks">${state.debate.map(([id, value]) => `<li><span>${nameOf(id)}</span><strong>${percent(value)}</strong></li>`).join('')}</ul>
+      <p class="lede">${speaks ? 'Защити свою догадку одной фразой!' : 'Послушай обе версии. Скоро узнаем ответ.'}</p>
+      ${state.host === state.me ? button('Раскрыть ответ', 'reveal') : ''}`;
+  }
   if (state.phase === 'guessing') {
     return `${kicker('03 / УГАДЫВАНИЕ · ' + turn)}
       <h1>Какую оценку поставил игрок <em>${nameOf(state.subject)}</em>?</h1>${topic}
