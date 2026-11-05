@@ -52,7 +52,9 @@ function snapshot(room, player) {
   return {
     ...view(room.game, player.id),
     now, code: room.code, me: player.id, host: room.host,
-    players: [...room.members.values()].map(({ id, name }) => ({ id, name })),
+    players: [...room.members.values()]
+      .filter(member => room.game.phase !== 'lobby' || !member.left)
+      .map(({ id, name }) => ({ id, name })),
   };
 }
 
@@ -74,8 +76,9 @@ function register(path, body) {
     if (!room) fail(404, 'Комната не найдена. Проверь код.');
     tick(room.game, Date.now());
     if (!['lobby', 'finished'].includes(room.game.phase)) fail(409, 'Партия уже идёт. Зайди после финала.');
-    if (room.members.size >= limits.maxPlayers) fail(409, 'Комната заполнена.');
-    if ([...room.members.values()].some(player => player.name.toLowerCase() === name.toLowerCase())) {
+    const present = [...room.members.values()].filter(player => !player.left);
+    if (present.length >= limits.maxPlayers) fail(409, 'Комната заполнена.');
+    if (present.some(player => player.name.toLowerCase() === name.toLowerCase())) {
       fail(409, 'Это имя уже занято.');
     }
   }
@@ -98,12 +101,30 @@ async function api(req, res, path) {
   const body = req.method === 'POST' ? await readBody(req) : null;
   const room = rooms.get(match[1]);
   const player = room?.members.get(req.headers.authorization?.replace(/^Bearer /, ''));
-  if (!player) fail(401, 'Сессия комнаты закончилась. Подключись снова.');
+  if (!player || player.left) fail(401, 'Сессия комнаты закончилась. Подключись снова.');
   if (body) {
+    if (body.type === 'leave') {
+      player.left = true;
+      if (room.game.phase === 'lobby') {
+        for (const [token, member] of room.members) {
+          if (member.left) room.members.delete(token);
+        }
+      }
+      const remainingHost = [...room.members.values()].find(member => !member.left && !member.isBot);
+      if (!remainingHost) rooms.delete(room.code);
+      else if (room.host === player.id) room.host = remainingHost.id;
+      send(res, 200, { left: true });
+      return;
+    }
     const error = act(room.game, {
       id: player.id, isHost: player.id === room.host,
-      players: [...room.members.values()].map(member => member.id),
+      players: [...room.members.values()].filter(member => !member.left).map(member => member.id),
     }, body, Date.now());
+    if (!error && body.type === 'start') {
+      for (const [token, member] of room.members) {
+        if (member.left) room.members.delete(token);
+      }
+    }
     send(res, error ? 409 : 200, { error, state: snapshot(room, player) });
     return;
   }

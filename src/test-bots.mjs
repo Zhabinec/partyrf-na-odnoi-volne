@@ -11,7 +11,7 @@ const profiles = [
 export function addTestBots(room) {
   room.testBots = profiles.map(profile => {
     const bot = { ...profile, id: randomUUID() };
-    room.members.set(randomUUID(), { id: bot.id, name: bot.name });
+    room.members.set(randomUUID(), { id: bot.id, name: bot.name, isBot: true });
     return bot;
   });
 }

@@ -449,6 +449,7 @@ input[type="range"]::-moz-range-thumb {
 .footer span { color: var(--foam); }
 .sr-only { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
 @media (max-width: 45rem) {
+  .masthead { flex-wrap: wrap; }
   .stage { grid-template-columns: 1fr; }
   .masthead { padding-block: .85rem; }
   .wordmark { font-size: .75rem; }

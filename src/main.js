@@ -3,6 +3,7 @@ import { entrance, percent, roomScreen, situations } from './ui.js';
 const app = document.querySelector('#app');
 const feedback = document.querySelector('#feedback');
 const roomLabel = document.querySelector('#room-label');
+const leaveRoom = document.querySelector('#leave-room');
 const soundToggle = document.querySelector('#sound-toggle');
 let soundOn = true;
 let audio;
@@ -56,7 +57,7 @@ soundToggle.addEventListener('click', () => {
   if (soundOn) unlockSound();
   if (output) output.gain.setTargetAtTime(soundOn ? 1 : 0, audio.currentTime, .015);
 });
-const code = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
+let code = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
 const sessionKey = 'on-wave-session';
 let session;
 try { session = JSON.parse(sessionStorage.getItem(sessionKey)); } catch {}
@@ -105,7 +106,7 @@ function applyState(next, id) {
   const changesPage = state?.step !== next.step;
   state = next;
   offset = next.now - Date.now();
-  const key = JSON.stringify([state.step, state.done, state.phase, state.players, state.me]);
+  const key = JSON.stringify([state.step, state.done, state.phase, state.players, state.me, state.host]);
   if (key !== renderedKey) {
     const shouldFocus = renderedKey !== undefined && !document.activeElement?.matches('.invite-link');
     renderedKey = key;
@@ -122,6 +123,7 @@ function applyState(next, id) {
       }, 120);
     }
     roomLabel.textContent = 'КОМНАТА ' + state.code;
+    leaveRoom.hidden = false;
     const invite = document.querySelector('#invite-link');
     if (invite) invite.value = inviteUrl();
     if (shouldFocus) {
@@ -155,12 +157,14 @@ async function sync() {
   const id = ++requestId;
   try {
     const data = await request('rooms/' + session.code, null, session.token);
+    if (id < lastApplied) return;
     applyState(data.state, id);
     if (feedback.dataset.connection) {
       delete feedback.dataset.connection;
       message();
     }
   } catch (error) {
+    if (id < lastApplied) return;
     if (error.status === 401) {
       session = null;
       state = null;
@@ -177,14 +181,33 @@ async function sync() {
 
 function showEntrance() {
   roomLabel.textContent = 'ИГРА ДЛЯ КОМПАНИИ';
+  leaveRoom.hidden = true;
   app.classList.remove('in-room');
   app.innerHTML = entrance(code, app.hasAttribute('data-test-bots'));
 }
+
+leaveRoom.addEventListener('click', () => {
+  if (!session) return;
+  const previous = session;
+  lastApplied = ++requestId;
+  session = null;
+  state = null;
+  renderedKey = undefined;
+  code = '';
+  sessionStorage.removeItem(sessionKey);
+  history.replaceState(null, '', new URL('./', location.href));
+  delete feedback.dataset.connection;
+  message();
+  showEntrance();
+  app.querySelector('#name')?.focus();
+  void request('rooms/' + previous.code, { type: 'leave' }, previous.token).catch(() => {});
+});
 
 async function action(type, value) {
   const id = ++requestId;
   const step = state.step;
   const data = await request('rooms/' + session.code, { type, value, step }, session.token);
+  if (id < lastApplied) return;
   applyState(data.state, id);
   if (!data.error && data.state.step === step) void playEffect('bubble');
   message(data.error);
