@@ -59,7 +59,7 @@ body {
 .stage {
   flex: 1;
   display: grid;
-  grid-template-columns: 1.1fr .9fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
   align-items: center;
   align-content: center;
   gap: clamp(1.5rem, 5vw, 5rem);
@@ -106,7 +106,7 @@ input, button {
   border-radius: .75rem;
   font: inherit;
 }
-input { border: 1px solid var(--edge); background: var(--field); padding: .65rem .85rem; color: var(--paper); }
+input { min-width: 0; border: 1px solid var(--edge); background: var(--field); padding: .65rem .85rem; color: var(--paper); }
 input::placeholder { color: var(--muted); opacity: .86; }
 button {
   cursor: pointer;
@@ -383,7 +383,7 @@ input[type="range"]::-moz-range-thumb {
 .finale-scene .winner-card h1 { margin-top: .4rem; }
 .finale-scene > button { width: auto; min-width: min(12rem, 100%); }
 .moment-pair { display: flex; justify-content: center; flex-wrap: wrap; gap: .75rem; margin-block: 1.4rem; }
-.moment-pair p { padding: .75rem 1rem; min-width: 8rem; border-radius: 1rem; background: var(--field); color: var(--muted); }
+.moment-pair p { padding: .75rem 1rem; min-width: min(8rem, 100%); border-radius: 1rem; background: var(--field); color: var(--muted); overflow-wrap: anywhere; }
 .moment-pair strong { display: block; color: var(--foam); font-size: clamp(1.65rem, 6vw, 3.1rem); }
 .moment-pair p:last-child strong { color: var(--sand); }
 .round:has(.final-lineup) > button { margin-block: 1rem; width: auto; }
@@ -469,6 +469,10 @@ input[type="range"]::-moz-range-thumb {
   from { opacity: .35; transform: perspective(85rem) translateX(.55rem) rotateY(-17deg) rotate(-.8deg); }
   to { opacity: 1; transform: none; }
 }
+@keyframes page-rise {
+  from { opacity: .35; transform: translateY(.55rem); }
+  to { opacity: 1; transform: none; }
+}
 @keyframes page-edge {
   from { clip-path: inset(0 100% 0 0); opacity: .46; }
   55% { opacity: .3; }
@@ -479,11 +483,30 @@ input[type="range"]::-moz-range-thumb {
 .footer span { color: var(--foam); }
 .sr-only { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
 @media (max-width: 45rem) {
-  .masthead { flex-wrap: wrap; }
-  .stage { grid-template-columns: 1fr; }
-  .masthead { padding-block: .85rem; }
+  .masthead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: .5rem;
+    padding-block: .6rem;
+  }
+  .masthead .badge { grid-row: 2; grid-column: 1 / -1; text-align: left; }
+  .stage { grid-template-columns: minmax(0, 1fr); align-content: start; }
   .wordmark { font-size: .75rem; }
   .badge, .footer { font-size: .65rem; }
+  .intro h1 { font-size: clamp(2.6rem, 10vw, 4.6rem); }
+  .round h1 { font-size: clamp(1.9rem, 6vw, 3rem); }
+  .show-card h1 { font-size: clamp(2rem, 7vw, 3.6rem); }
+  .show-card { padding-block: clamp(1rem, 6svh, 3rem); }
+  .round.page-turn { animation-name: page-rise; }
+  .finale-scene > button, .round:has(.final-lineup) > button { width: 100%; }
+}
+@media (max-width: 25rem) {
+  .masthead, .footer, .stage { width: calc(100% - 1.25rem); }
+  .signal { width: 1.5rem; height: 1.5rem; font-size: 1.15rem; }
+  .panel { padding: 1rem; }
+  .round-status, .round-clock { gap: .4rem; }
+  .ends { gap: .25rem; font-size: .8rem; }
+  .recap-guesses li { flex: 1 1 7rem; min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
