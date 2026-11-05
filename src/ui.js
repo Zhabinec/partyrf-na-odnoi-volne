@@ -63,9 +63,15 @@ function roster(state, scored = false) {
 function slider(label, action) {
   return `<form data-form="${action}" class="scale-form">
     <label class="sr-only" for="scale">${label}</label>
-    <output for="scale" id="reading">0%</output>
+    <div class="wave-meter">
+      <svg viewBox="0 0 400 110" preserveAspectRatio="none" aria-hidden="true">
+        <path class="meter-water" d="M0 0Q50 -20 100 0T200 0T300 0T400 0V230H0Z"/>
+      </svg>
+      <output for="scale" id="reading">0%</output>
+    </div>
     <input id="scale" name="value" type="range" min="-100" max="100" value="0" aria-valuetext="0%">
     <p class="ends"><span>−100%<small>Против</small></span><span>0%<small>Нейтрально</small></span><span>+100%<small>За</small></span></p>
+    <p class="host-line" id="host-line">Прямо посередине? Дипломатично.</p>
     <button type="submit">Зафиксировать ${action === 'rate' ? 'оценку' : 'догадку'}</button>
   </form>`;
 }
@@ -108,14 +114,32 @@ function roundScreen(state) {
   if (state.phase === 'finished') {
     const best = Math.max(...Object.values(state.scores));
     const winners = Object.keys(state.scores).filter(id => state.scores[id] === best).map(nameOf);
-    return `${kicker('ФИНАЛ')}<h1>${best ? 'На одной <em>волне!</em>' : 'Партия окончена'}</h1>
-      <p class="lede">${best ? (winners.length > 1 ? 'Победители — ' : 'Победитель — ') + winners.join(', ') : 'В этой партии никто не набрал очков.'}</p>
+    return `${kicker('ФИНАЛ')}<h1>Кто поймал <em>волну?</em></h1>
+      <section class="winner-stage">
+        ${best ? '<div class="confetti" aria-hidden="true">' + '<i></i>'.repeat(12) + '</div>' : ''}
+        <p class="drum-caption" aria-hidden="true">Бр-р-р-р…</p>
+        <div class="winner-card">
+          <p>${best ? (winners.length > 1 ? 'Делят победу' : 'Победитель') : 'Партия окончена'}</p>
+          <h2>${best ? winners.join(', ') : 'Волна унесла все очки'}</h2>
+          ${best ? `<p>Счёт: ${best}</p>` : ''}
+        </div>
+      </section>
+      <section class="final-lineup">
+      <h2>Таблица результатов</h2>
+      ${roster(state, true)}
       ${state.highlight ? `<aside class="why-card">
         <strong>Момент партии</strong>
         <p>«${escape(state.highlight.topic)}»</p>
         <p>Средняя догадка — ${percent(state.highlight.average)}. Оценка игрока ${nameOf(state.highlight.subject)} — ${percent(state.highlight.rating)}.</p>
       </aside>` : ''}
-      ${roster(state, true)}${state.host === state.me ? button('Сыграть ещё', 'start') : waiting('Хост может начать новую партию.')}`;
+      <h2>Что было на самом деле</h2>
+      <div class="recap-deck">${state.results.map((result, i) => `<details class="recap-card">
+        <summary><span>Ход ${i + 1} · ${nameOf(result.subject)}</span><strong>${percent(result.rating)}</strong>
+          <span class="recap-topic">«${escape(result.topic)}»</span></summary>
+        ${recap(result, nameOf, state.me)}
+      </details>`).join('')}</div>
+      ${state.host === state.me ? button('Сыграть ещё', 'start') : waiting('Хост может начать новую партию.')}
+      </section>`;
   }
   if (state.phase === 'topics') {
     return `${kicker('01 / ТЕМЫ')}<h1>О чём <em>поговорим?</em></h1>
@@ -127,7 +151,11 @@ function roundScreen(state) {
         <button type="submit">Отправить тему</button>
       </form>`}`;
   }
-  if (!state.active && state.phase !== 'reveal') {
+  if (state.phase === 'sealed') {
+    return `${kicker('ХОД ' + state.turn.join(' / '))}<h1>Всё, <em>запечатали!</em></h1>
+      <p class="lede">Догадки записаны. Все ответы откроются в финале.</p>`;
+  }
+  if (!state.active) {
     return `${kicker('ПАРТИЯ ИДЁТ')}<h1>Смотри <em>раунд</em></h1>${waiting('Ты сможешь сыграть в следующей партии.')}`;
   }
   if (state.phase === 'rating') {
@@ -137,34 +165,25 @@ function roundScreen(state) {
   }
   const turn = state.turn.join(' / ');
   const topic = `<p class="topic">${escape(state.topic)}</p>`;
-  if (state.phase === 'debate') {
-    const speaks = state.debate.some(([id]) => id === state.me);
-    return `${kicker('СПОР · ' + turn)}<h1>Разные <em>берега</em></h1>${topic}
-      <p class="lede">Какую оценку поставил игрок ${nameOf(state.subject)}?</p>
-      <ul class="debate-picks">${state.debate.map(([id, value]) => `<li><span>${nameOf(id)}</span><strong>${percent(value)}</strong></li>`).join('')}</ul>
-      <p class="lede">${speaks ? 'Защити свою догадку одной фразой!' : 'Послушай обе версии. Скоро узнаем ответ.'}</p>
-      ${state.host === state.me ? button('Раскрыть ответ', 'reveal') : ''}`;
-  }
-  if (state.phase === 'guessing') {
-    return `${kicker('03 / УГАДЫВАНИЕ · ' + turn)}
+  return `${kicker('03 / УГАДЫВАНИЕ · ' + turn)}
       <h1>Какую оценку поставил игрок <em>${nameOf(state.subject)}</em>?</h1>${topic}
       ${state.subject === state.me ? waiting('Сейчас угадывают твою оценку.') :
-        state.done ? waiting('Догадка принята. Ждём раскрытия.') : slider('Твоя догадка', 'guess')}`;
-  }
-  const { rating, guesses, winners, askWhy } = state.result;
-  return `${kicker('РАСКРЫТИЕ · ' + turn)}<h1>Ответ игрока <em>${nameOf(state.subject)}</em></h1>${topic}
-    <strong class="reveal-value">${percent(rating)}</strong>
-    ${revealScale(rating, guesses, winners)}
+        state.done ? waiting('Догадка принята. Пока держим интригу.') : slider('Твоя догадка', 'guess')}`;
+}
+
+function recap({ subject, rating, guesses, winners, askWhy, debate }, nameOf, me) {
+  return `${revealScale(rating, guesses, winners)}
     ${guesses.length ? `<ul class="roster">${guesses.map(({ playerId, value, distance }) =>
       `<li${winners.includes(playerId) ? ' class="round-winner"' : ''}><span>${nameOf(playerId)} <small>${percent(value)} · ошибка ${distance} п. п.</small></span>
       <b>${winners.includes(playerId) ? '+1 очко' : ''}</b></li>`).join('')}</ul>` : waiting('В этом ходу догадок не было.')}
     ${askWhy ? `<aside class="why-card">
       <strong>А почему?</strong>
-      <p>${state.subject === state.me
+      <p>${subject === me
         ? 'Расскажи компании, почему ты поставил именно такую оценку.'
-        : `${nameOf(state.subject)}, расскажи, почему именно такая оценка!`}</p>
+        : `${nameOf(subject)}, расскажи, почему именно такая оценка!`}</p>
     </aside>` : ''}
-    ${state.host === state.me ? button(state.turn[0] === state.turn[1] ? 'Показать итог' : 'Следующий игрок', 'next') : waiting('Ждём следующего хода.')}`;
+    ${debate ? `<aside class="why-card"><strong>Разные берега</strong>
+      <p>${nameOf(debate[0].playerId)} — ${percent(debate[0].value)}, а ${nameOf(debate[1].playerId)} — ${percent(debate[1].value)}. Кто как рассуждал?</p></aside>` : ''}`;
 }
 
 export function roomScreen(state) {

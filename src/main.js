@@ -3,6 +3,38 @@ import { entrance, percent, roomScreen, situations } from './ui.js';
 const app = document.querySelector('#app');
 const feedback = document.querySelector('#feedback');
 const roomLabel = document.querySelector('#room-label');
+const soundToggle = document.querySelector('#sound-toggle');
+let soundOn = true;
+let audio;
+
+function unlockSound() {
+  if (!soundOn || !window.AudioContext) return;
+  audio ??= new AudioContext();
+  if (audio.state === 'suspended') void audio.resume().catch(() => {});
+}
+
+function playFinale() {
+  if (!soundOn || audio?.state !== 'running') return;
+  const noise = audio.createBuffer(1, Math.round(audio.sampleRate * .07), audio.sampleRate);
+  const samples = noise.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) samples[i] = (Math.random() * 2 - 1) * (1 - i / samples.length) ** 2;
+  const start = audio.currentTime;
+  for (let i = 0; i < 12; i++) {
+    const hit = audio.createBufferSource();
+    const gain = audio.createGain();
+    hit.buffer = noise;
+    gain.gain.value = i === 11 ? .16 : .04 + i * .006;
+    hit.connect(gain).connect(audio.destination);
+    hit.start(start + i * .073);
+  }
+}
+
+soundToggle.addEventListener('click', () => {
+  soundOn = !soundOn;
+  soundToggle.setAttribute('aria-pressed', String(soundOn));
+  if (soundOn) unlockSound();
+  else if (audio?.state === 'running') void audio.suspend().catch(() => {});
+});
 const code = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
 const sessionKey = 'on-wave-session';
 let session;
@@ -49,6 +81,7 @@ function applyState(next, id) {
     app.classList.add('in-room');
     app.innerHTML = roomScreen(state);
     if (changesPage) app.firstElementChild.classList.add('page-turn');
+    if (changesPage && state.phase === 'finished') playFinale();
     roomLabel.textContent = 'КОМНАТА ' + state.code;
     const invite = document.querySelector('#invite-link');
     if (invite) invite.value = inviteUrl();
@@ -132,6 +165,7 @@ async function interact(callback, control) {
 
 app.addEventListener('submit', event => {
   event.preventDefault();
+  unlockSound();
   const form = event.target;
   const control = event.submitter ?? form.querySelector('button');
   const fields = new FormData(form);
@@ -152,6 +186,7 @@ app.addEventListener('submit', event => {
 app.addEventListener('click', event => {
   const control = event.target.closest('[data-action]');
   if (!control) return;
+  unlockSound();
   void interact(async () => {
     if (control.dataset.action === 'copy') {
       try {
@@ -174,9 +209,15 @@ app.addEventListener('click', event => {
 
 app.addEventListener('input', event => {
   if (event.target.id !== 'scale') return;
-  const value = percent(Number(event.target.value));
+  const rating = Number(event.target.value);
+  const value = percent(rating);
   event.target.setAttribute('aria-valuetext', value);
   document.querySelector('#reading').value = value;
+  document.querySelector('.wave-meter').style.setProperty('--waterline', (50 - rating * .42) + '%');
+  document.querySelector('#host-line').textContent = rating >= 85 ? 'Точно настолько? Тут уже цунами!' :
+    rating <= -85 ? 'Ого. Даже спасательный круг не поможет?' :
+    Math.abs(rating) < 15 ? 'Прямо посередине? Дипломатично.' :
+    rating > 0 ? 'Так-так, волна пошла!' : 'Кажется, отлив. Оставляем так?';
 });
 
 async function poll() {

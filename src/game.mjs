@@ -1,5 +1,5 @@
 export const limits = { minPlayers: 3, maxPlayers: 10, name: 24, topic: 72 };
-export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000, debate: 10_000 };
+export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000, sealed: 1800 };
 
 export function newGame() {
   return { phase: 'lobby', step: 0, deadline: null };
@@ -20,7 +20,7 @@ function shuffle(items, random) {
   return result;
 }
 
-function reveal(game, now) {
+function sealRound(game, now) {
   const turn = game.turns[game.turnIndex];
   const rating = game.ratings[turn];
   const guesses = Object.entries(game.guesses).map(([playerId, value]) => ({
@@ -28,10 +28,20 @@ function reveal(game, now) {
   })).sort((a, b) => a.distance - b.distance);
   const winners = guesses.filter(guess => guess.distance === guesses[0].distance);
   for (const { playerId } of winners) game.scores[playerId]++;
-  game.result = {
-    rating, guesses, winners: winners.map(guess => guess.playerId),
+  const result = {
+    subject: turn, topic: game.assigned[turn], rating, guesses, winners: winners.map(guess => guess.playerId),
     askWhy: game.whyPlayers.includes(turn),
   };
+  if (!game.hadDebate && !result.askWhy && guesses.length >= 2) {
+    const ordered = [...guesses].sort((a, b) => a.value - b.value);
+    const low = ordered[0];
+    const high = ordered.at(-1);
+    if (high.value - low.value >= 100) {
+      result.debate = [low, high];
+      game.hadDebate = true;
+    }
+  }
+  game.results.push(result);
   if (guesses.length >= 2) {
     const average = Math.round(guesses.reduce((sum, guess) => sum + guess.value, 0) / guesses.length);
     const gap = Math.abs(average - rating);
@@ -39,22 +49,7 @@ function reveal(game, now) {
       game.highlight = { subject: turn, topic: game.assigned[turn], average, rating, gap };
     }
   }
-  enter(game, 'reveal', now);
-}
-
-function finishGuessing(game, now) {
-  const subject = game.turns[game.turnIndex];
-  if (!game.debate && !game.whyPlayers.includes(subject)) {
-    const guesses = Object.entries(game.guesses).sort((a, b) => a[1] - b[1]);
-    const low = guesses[0];
-    const high = guesses.at(-1);
-    if (low && high[1] - low[1] >= 100) {
-      game.debate = [low, high];
-      enter(game, 'debate', now);
-      return;
-    }
-  }
-  reveal(game, now);
+  enter(game, 'sealed', now);
 }
 
 function advance(game, now, random) {
@@ -86,10 +81,10 @@ function advance(game, now, random) {
       nextTurn(game, now);
       break;
     case 'guessing':
-      finishGuessing(game, now);
+      sealRound(game, now);
       break;
-    case 'debate':
-      reveal(game, now);
+    case 'sealed':
+      nextTurn(game, now);
       break;
   }
 }
@@ -97,7 +92,6 @@ function advance(game, now, random) {
 function nextTurn(game, now) {
   game.turnIndex++;
   game.guesses = {};
-  game.result = null;
   enter(game, game.turnIndex === game.turns.length ? 'finished' : 'guessing', now);
 }
 
@@ -113,17 +107,9 @@ export function act(game, { id, isHost, players }, action, now, random = Math.ra
     if (players.length < limits.minPlayers) return 'Нужно хотя бы три игрока.';
     Object.assign(game, {
       active: players, topics: {}, assigned: {}, ratings: {}, scores: {},
-      turns: [], guesses: {}, result: null, notice: '', debate: null, highlight: null,
+      turns: [], guesses: {}, results: [], notice: '', hadDebate: false, highlight: null,
     });
     enter(game, 'topics', now);
-    return;
-  }
-  if (action.type === 'next' && game.phase === 'reveal' && isHost) {
-    nextTurn(game, now);
-    return;
-  }
-  if (action.type === 'reveal' && game.phase === 'debate' && isHost) {
-    reveal(game, now);
     return;
   }
   if (!game.active?.includes(id)) return 'Дождись следующей партии.';
@@ -153,9 +139,10 @@ export function act(game, { id, isHost, players }, action, now, random = Math.ra
 
 export function view(game, id) {
   const { phase, step, deadline } = game;
-  const data = { phase, step, deadline, notice: game.notice, scores: game.scores ?? {} };
+  const data = { phase, step, deadline, notice: game.notice };
   if (phase === 'lobby') return data;
-  if (phase === 'finished') return { ...data, highlight: game.highlight };
+  if (phase === 'finished') return { ...data, scores: game.scores, results: game.results, highlight: game.highlight };
+  if (phase === 'sealed') return { ...data, turn: [game.turnIndex + 1, game.turns.length] };
   data.active = game.active.includes(id);
   if (phase === 'topics' || phase === 'rating') {
     const answers = phase === 'topics' ? game.topics : game.ratings;
@@ -167,11 +154,7 @@ export function view(game, id) {
   data.subject = game.turns[game.turnIndex];
   data.topic = game.assigned[data.subject];
   data.turn = [game.turnIndex + 1, game.turns.length];
-  if (phase === 'reveal') data.result = game.result;
-  else if (phase === 'debate') data.debate = game.debate;
-  else {
-    data.done = Object.hasOwn(game.guesses, id);
-    data.progress = [Object.keys(game.guesses).length, game.active.length - 1];
-  }
+  data.done = Object.hasOwn(game.guesses, id);
+  data.progress = [Object.keys(game.guesses).length, game.active.length - 1];
   return data;
 }
