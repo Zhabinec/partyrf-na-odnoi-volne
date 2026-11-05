@@ -39,7 +39,7 @@ function loadClip(file) {
 }
 
 function updateMusic(retryLoad = false) {
-  if (!state || state.me !== state.host) {
+  if (!state) {
     music?.stop();
     music = null;
     musicVolume = undefined;

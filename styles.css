@@ -264,7 +264,6 @@ input[type="range"]::-moz-range-thumb {
 }
 .sound-settings label span { color: var(--foam); font-variant-numeric: tabular-nums; }
 .sound-settings input[type="range"] { min-height: 2.75rem; }
-.sound-settings p { color: var(--muted); margin-bottom: 1rem; }
 .sound-settings form { margin-top: 1rem; }
 .masthead .badge { margin-left: auto; }
 .wave-meter {
