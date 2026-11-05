@@ -25,6 +25,17 @@ node server.mjs
 
 ## Модули
 
+Кнопка **«Тест с ботами»** создаёт комнату с тремя ботами прямо в игре. Имя можно оставить пустым. После «Начать игру» боты отправляют темы, оценки и догадки, а ты играешь и листаешь финал как хост.
+
+Чтобы скрыть кнопку и отключить создание тестовых комнат, перезапусти сервер с флагом:
+
+```powershell
+$env:TEST_BOTS='0'
+node .\na-odnoi-volne\server.mjs
+```
+
+Чтобы вернуть режим, установи `TEST_BOTS=1` и перезапусти сервер. Логика ботов находится в `src/test-bots.mjs`.
+
 Музыки в игре нет. Перебивки, отсчёт и финал используют [бесплатные эффекты Mixkit](https://mixkit.co/license/): [Paper slide](https://assets.mixkit.co/active_storage/sfx/1530/1530-preview.mp3), [Clock ticker single](https://assets.mixkit.co/active_storage/sfx/1061/1061-preview.mp3), [Tension and suspense drum roll](https://assets.mixkit.co/active_storage/sfx/577/577-preview.mp3) и [Audience light applause](https://assets.mixkit.co/active_storage/sfx/354/354-preview.mp3).
 
 - `src/game.mjs` — правила, фазы, счёт и персональные снимки состояния. Модуль не зависит от браузера и HTTP.

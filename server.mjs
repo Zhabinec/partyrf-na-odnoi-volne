@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { act, limits, newGame, tick, view } from './src/game.mjs';
+import { addTestBots, runTestBots, testBotsEnabled } from './src/test-bots.mjs';
 
 const rooms = new Map();
 const roomLifetime = 6 * 60 * 60 * 1000;
@@ -55,10 +56,13 @@ function snapshot(room, player) {
 }
 
 function register(path, body) {
-  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const testRoom = path === '/api/create-test';
+  if (testRoom && !testBotsEnabled) fail(404, 'Тестовый режим выключен.');
+  const enteredName = typeof body.name === 'string' ? body.name.trim() : '';
+  const name = enteredName || (testRoom ? 'Тестер' : '');
   if (!name || name.length > limits.name) fail(400, 'Введи имя до 24 символов.');
   let room;
-  if (path === '/api/create') {
+  if (path === '/api/create' || testRoom) {
     if (rooms.size >= 500) fail(503, 'Все комнаты заняты. Попробуй позже.');
     let code;
     do { code = randomBytes(3).toString('hex').toUpperCase(); } while (rooms.has(code));
@@ -78,11 +82,12 @@ function register(path, body) {
   const player = { id: randomUUID(), name };
   room.members.set(token, player);
   room.host ??= player.id;
+  if (testRoom) addTestBots(room);
   return { token, state: snapshot(room, player) };
 }
 
 async function api(req, res, path) {
-  if (req.method === 'POST' && ['/api/create', '/api/join'].includes(path)) {
+  if (req.method === 'POST' && ['/api/create', '/api/create-test', '/api/join'].includes(path)) {
     send(res, 201, register(path, await readBody(req)));
     return;
   }
@@ -120,7 +125,9 @@ const server = createServer(async (req, res) => {
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'",
     });
-    res.end(contents);
+    res.end(path === '/' && testBotsEnabled
+      ? contents.toString().replace('id="app"', 'id="app" data-test-bots')
+      : contents);
   } catch (error) {
     if (!error.status) console.error(error);
     if (!res.destroyed) send(res, error.status ?? 500, { error: error.status ? error.message : 'Ошибка сервера.' });
@@ -131,7 +138,10 @@ setInterval(() => {
   const now = Date.now();
   for (const [code, room] of rooms) {
     if (now - room.touched > roomLifetime) rooms.delete(code);
-    else tick(room.game, now);
+    else {
+      tick(room.game, now);
+      if (testBotsEnabled) runTestBots(room, now);
+    }
   }
 }, 1000).unref();
 

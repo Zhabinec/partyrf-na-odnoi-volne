@@ -177,7 +177,7 @@ async function sync() {
 function showEntrance() {
   roomLabel.textContent = 'ИГРА ДЛЯ КОМПАНИИ';
   app.classList.remove('in-room');
-  app.innerHTML = entrance(code);
+  app.innerHTML = entrance(code, app.hasAttribute('data-test-bots'));
 }
 
 async function action(type, value) {
