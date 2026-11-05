@@ -12,9 +12,18 @@
   <header class="masthead">
     <a href="./" class="wordmark" aria-label="На одной волне, главная"><span class="signal" aria-hidden="true">∿</span> НА ОДНОЙ ВОЛНЕ</a>
     <span class="badge" id="room-label">ИГРА ДЛЯ КОМПАНИИ</span>
-    <button type="button" class="sound-toggle" id="sound-toggle" aria-pressed="true">Звук</button>
+    <button type="button" class="sound-toggle" id="sound-toggle" aria-haspopup="dialog" aria-controls="sound-settings">Звук</button>
     <button type="button" class="sound-toggle" id="leave-room" hidden>Выйти</button>
   </header>
+  <dialog id="sound-settings" class="sound-settings" aria-labelledby="sound-title">
+    <h2 id="sound-title">Настройки звука</h2>
+    <label for="music-level">Музыка <span id="music-value" aria-hidden="true">100%</span></label>
+    <input id="music-level" type="range" min="0" max="100" value="100" autofocus>
+    <p>Музыка играет на устройстве хоста.</p>
+    <label for="effects-level">Звуковые эффекты <span id="effects-value" aria-hidden="true">100%</span></label>
+    <input id="effects-level" type="range" min="0" max="100" value="100">
+    <form method="dialog"><button>Готово</button></form>
+  </dialog>
   <main id="app" class="stage"></main>
   <p id="feedback" class="feedback" role="status" hidden></p>
   <footer class="footer">ПРИДУМАЙ ТЕМУ <span>·</span> ПОЙМАЙ ВОЛНУ <span>·</span> УДИВИСЬ ОТВЕТУ</footer>

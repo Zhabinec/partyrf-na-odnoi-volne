@@ -36,7 +36,7 @@ node .\na-odnoi-volne\server.mjs
 
 Чтобы вернуть режим, установи `TEST_BOTS=1` и перезапусти сервер. Логика ботов находится в `src/test-bots.mjs`.
 
-У хоста после первого действия в комнате играет [Surf Shimmy](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700018) Кевина Маклауда (Incompetech), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Кнопка «Звук» выключает музыку и эффекты.
+У хоста после первого действия в комнате играет [Surf Shimmy](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700018) Кевина Маклауда (Incompetech), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Кнопка «Звук» открывает отдельные ползунки музыки и эффектов. Настройки сохраняются в браузере.
 
 Перебивки, отсчёт и финал используют [бесплатные эффекты Mixkit](https://mixkit.co/license/): [Water splash](https://assets.mixkit.co/active_storage/sfx/1311/1311-preview.mp3), [Water bubble](https://assets.mixkit.co/active_storage/sfx/1317/1317-preview.mp3), [Clock ticker single](https://assets.mixkit.co/active_storage/sfx/1061/1061-preview.mp3), [Tension and suspense drum roll](https://assets.mixkit.co/active_storage/sfx/577/577-preview.mp3) и [Audience light applause](https://assets.mixkit.co/active_storage/sfx/354/354-preview.mp3).
 

@@ -246,7 +246,26 @@ input[type="range"]::-moz-range-thumb {
 }
 .why-card strong { color: var(--foam); font-size: 1.3rem; }
 .sound-toggle { width: auto; padding-inline: .65rem; background: var(--field); color: var(--foam); border-color: var(--edge); }
-.sound-toggle[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+.sound-settings {
+  width: min(26rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: clamp(1rem, 5vw, 1.75rem);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--paper);
+}
+.sound-settings::backdrop { background: rgb(0 0 0 / 65%); }
+.sound-settings h2 { margin-bottom: 1.25rem; }
+.sound-settings label {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.sound-settings label span { color: var(--foam); font-variant-numeric: tabular-nums; }
+.sound-settings input[type="range"] { min-height: 2.75rem; }
+.sound-settings p { color: var(--muted); margin-bottom: 1rem; }
+.sound-settings form { margin-top: 1rem; }
 .masthead .badge { margin-left: auto; }
 .wave-meter {
   --waterline: 50%;

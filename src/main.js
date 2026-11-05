@@ -5,9 +5,16 @@ const feedback = document.querySelector('#feedback');
 const roomLabel = document.querySelector('#room-label');
 const leaveRoom = document.querySelector('#leave-room');
 const soundToggle = document.querySelector('#sound-toggle');
-let soundOn = true;
+const soundSettings = document.querySelector('#sound-settings');
+const musicLevel = document.querySelector('#music-level');
+const effectsLevel = document.querySelector('#effects-level');
+const volumeKey = 'on-wave-volume';
+let levels = {};
+try { levels = JSON.parse(localStorage.getItem(volumeKey)) ?? {}; } catch {}
+musicLevel.value = levels.music ?? 100;
+effectsLevel.value = levels.effects ?? 100;
 let audio;
-let output;
+let effectsOutput;
 let musicClip;
 let music;
 let musicGain;
@@ -38,7 +45,7 @@ function updateMusic(retryLoad = false) {
     musicVolume = undefined;
     return;
   }
-  if (!soundOn || !audio) return;
+  if (!audio || (!music && musicLevel.valueAsNumber === 0)) return;
   if (musicClip === undefined || (retryLoad && musicClip === false)) {
     musicClip = null;
     void loadClip('surf-shimmy').then(buffer => {
@@ -50,7 +57,7 @@ function updateMusic(retryLoad = false) {
   if (!music) {
     musicGain = audio.createGain();
     musicGain.gain.value = 0;
-    musicGain.connect(output);
+    musicGain.connect(audio.destination);
     music = audio.createBufferSource();
     music.buffer = musicClip;
     music.loop = true;
@@ -60,18 +67,20 @@ function updateMusic(retryLoad = false) {
     music.start();
   }
   const silent = document.hidden || ['intro', 'sealed', 'recap-why', 'winner', 'moment', 'finished'].includes(state.phase);
-  const volume = silent ? 0 : state.phase === 'lobby' ? .42 : .24;
+  const phaseVolume = state.phase === 'lobby' ? .42 : .24;
+  const volume = silent ? 0 : phaseVolume * musicLevel.valueAsNumber / 100;
   if (volume === musicVolume) return;
   musicVolume = volume;
   musicGain.gain.setTargetAtTime(volume, audio.currentTime, .09);
 }
 
 function unlockSound() {
-  if (!soundOn || !window.AudioContext) return;
+  if (!window.AudioContext) return;
   if (!audio) {
     audio = new AudioContext();
-    output = audio.createGain();
-    output.connect(audio.destination);
+    effectsOutput = audio.createGain();
+    effectsOutput.gain.value = effectsLevel.valueAsNumber / 100;
+    effectsOutput.connect(audio.destination);
     for (const [file] of Object.values(effects)) {
       clips.set(file, loadClip(file));
     }
@@ -81,11 +90,11 @@ function unlockSound() {
 }
 
 async function playEffect(kind) {
-  if (!soundOn || document.hidden || audio?.state !== 'running') return;
+  if (effectsLevel.valueAsNumber === 0 || document.hidden || audio?.state !== 'running') return;
   const step = state?.step;
   const [file, volume, limit] = effects[kind];
   const buffer = await clips.get(file);
-  if (!buffer || !soundOn || document.hidden || state?.step !== step) return;
+  if (!buffer || effectsLevel.valueAsNumber === 0 || document.hidden || state?.step !== step) return;
   const voice = audio.createBufferSource();
   const gain = audio.createGain();
   const duration = Math.min(limit, buffer.duration);
@@ -94,15 +103,28 @@ async function playEffect(kind) {
   gain.gain.setValueAtTime(volume, start);
   gain.gain.setValueAtTime(volume, start + Math.max(0, duration - .12));
   gain.gain.linearRampToValueAtTime(0, start + duration);
-  voice.connect(gain).connect(output);
+  voice.connect(gain).connect(effectsOutput);
   voice.start(start, 0, duration);
 }
 
 soundToggle.addEventListener('click', () => {
-  soundOn = !soundOn;
-  soundToggle.setAttribute('aria-pressed', String(soundOn));
-  if (soundOn) unlockSound();
-  if (output) output.gain.setTargetAtTime(soundOn ? 1 : 0, audio.currentTime, .015);
+  unlockSound();
+  soundSettings.showModal();
+});
+
+function showVolumeLevels() {
+  document.querySelector('#music-value').textContent = musicLevel.value + '%';
+  document.querySelector('#effects-value').textContent = effectsLevel.value + '%';
+}
+
+showVolumeLevels();
+soundSettings.addEventListener('input', () => {
+  unlockSound();
+  if (effectsOutput) effectsOutput.gain.setTargetAtTime(effectsLevel.valueAsNumber / 100, audio.currentTime, .025);
+  showVolumeLevels();
+  try {
+    localStorage.setItem(volumeKey, JSON.stringify({ music: musicLevel.valueAsNumber, effects: effectsLevel.valueAsNumber }));
+  } catch {}
 });
 document.addEventListener('visibilitychange', () => updateMusic());
 let code = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
