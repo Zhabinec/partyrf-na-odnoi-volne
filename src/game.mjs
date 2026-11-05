@@ -1,5 +1,5 @@
 export const limits = { minPlayers: 3, maxPlayers: 10, name: 24, topic: 72 };
-export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000, sealed: 1800, intro: 2400, 'recap-tease': 2300 };
+export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000, sealed: 1800, intro: 2400 };
 
 export function newGame() {
   return { phase: 'lobby', step: 0, deadline: null };
@@ -94,9 +94,6 @@ function advance(game, now, random) {
     case 'sealed':
       nextTurn(game, now);
       break;
-    case 'recap-tease':
-      enter(game, 'recap', now);
-      break;
   }
 }
 
@@ -105,7 +102,7 @@ function nextTurn(game, now) {
   game.guesses = {};
   if (game.turnIndex === game.turns.length) {
     game.recapIndex = 0;
-    enter(game, 'recap-tease', now);
+    enter(game, 'recap', now);
   }
   else if (game.turnIndex === 0) announce(game, 'guessing', now);
   else enter(game, 'guessing', now);
@@ -118,11 +115,15 @@ export function tick(game, now, random = Math.random) {
 export function act(game, { id, isHost, players }, action, now, random = Math.random) {
   tick(game, now, random);
   if (action.step !== game.step) return 'Этап уже закончился. Экран обновлён.';
-  if (action.type === 'next-recap' && game.phase === 'recap') {
+  if (action.type === 'next-recap' && ['recap', 'recap-why'].includes(game.phase)) {
     if (!isHost) return 'Карточки листает хост.';
+    if (game.phase === 'recap' && game.results[game.recapIndex].askWhy) {
+      enter(game, 'recap-why', now);
+      return;
+    }
     game.recapIndex++;
     if (game.recapIndex === game.results.length) announce(game, 'winner', now);
-    else enter(game, 'recap-tease', now);
+    else enter(game, 'recap', now);
     return;
   }
   if (action.type === 'next-finale' && ['winner', 'moment'].includes(game.phase)) {
@@ -180,12 +181,10 @@ export function view(game, id) {
     return { ...data, highlight: game.highlight ?? { subject, topic, rating, average: null } };
   }
   if (phase === 'finished') return { ...data, scores: game.scores, results: game.results };
-  if (phase === 'recap' || phase === 'recap-tease') {
+  if (phase === 'recap' || phase === 'recap-why') {
     const result = game.results[game.recapIndex];
-    const card = phase === 'recap' ? result : {
-      subject: result.subject, topic: result.topic,
-      guesses: result.guesses.map(({ playerId, value }) => ({ playerId, value })).sort((a, b) => a.value - b.value),
-    };
+    const { subject, topic, rating, guesses, winners, debate } = result;
+    const card = phase === 'recap' ? { subject, topic, rating, guesses, winners, debate } : { subject, topic, rating };
     return { ...data, card, turn: [game.recapIndex + 1, game.results.length] };
   }
   if (phase === 'sealed') return { ...data, turn: [game.turnIndex + 1, game.turns.length] };

@@ -327,6 +327,23 @@ input[type="range"]::-moz-range-thumb {
 .recap-guesses li:nth-child(3n) { animation-delay: 220ms; }
 .recap-guesses strong { display: block; color: var(--foam); font-size: 1.4rem; }
 .recap-guesses small { display: block; color: var(--muted); }
+.reaction-card {
+  --reaction-color: var(--sand);
+  margin-block: 1rem;
+  padding: clamp(1rem, 4vw, 2rem);
+  border-radius: 1.4rem;
+  background: var(--reaction-color);
+  color: var(--ink);
+  box-shadow: 0 .35rem 0 var(--field);
+  animation: winner-drop 420ms cubic-bezier(.19,1.35,.37,1) both;
+}
+.reaction-card[data-tone="against"] { --reaction-color: var(--coral); }
+.reaction-card[data-tone="for"] { --reaction-color: var(--foam); }
+.reaction-topic { font-weight: 750; overflow-wrap: anywhere; }
+.reaction-line { font-size: clamp(1.7rem, 6vw, 4rem); line-height: 1.1; font-weight: 950; margin-block: .35rem; }
+.reaction-card strong { font-size: clamp(1.4rem, 5vw, 2.6rem); }
+.why-scene .why-topic { margin-block: 1rem .35rem; color: var(--sand); font-weight: 850; overflow-wrap: anywhere; }
+.why-scene .why-question { font-size: clamp(1.1rem, 3vw, 1.65rem); margin-bottom: 1.25rem; overflow-wrap: anywhere; }
 .recap-guesses .recap-hit { border-color: var(--sand); }
 .recap-hit small:last-child { color: var(--sand); font-weight: 800; }
 .winner-stage { position: relative; isolation: isolate; margin-block: 1rem 2rem; }

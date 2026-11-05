@@ -6,6 +6,22 @@ export function percent(value) {
   return value < 0 ? '−' + Math.abs(value) + '%' : (value > 0 ? '+' : '') + value + '%';
 }
 
+function reaction(value) {
+  if (value <= -75) return ['against', 'Даже не уговаривайте!'];
+  if (value < -15) return ['against', 'Я, пожалуй, пас.'];
+  if (value <= 15) return ['neutral', 'Мне норм в обе стороны.'];
+  if (value < 75) return ['for', 'Вообще-то мне заходит!'];
+  return ['for', 'Да! Где записаться?'];
+}
+
+function whyLine(value) {
+  if (value <= -75) return 'Почему это так бесит?';
+  if (value < -15) return 'Что тут не зашло?';
+  if (value <= 15) return 'Почему так ровно?';
+  if (value < 75) return 'А что тебе здесь нравится?';
+  return 'Почему тебе это так заходит?';
+}
+
 const button = (label, action) => `<button type="button" data-action="${action}">${label}</button>`;
 const kicker = text => `<p class="kicker">${text}</p>`;
 
@@ -145,21 +161,29 @@ function roundScreen(state) {
     return `<section class="show-card">${surfer()}${kicker(label)}
       <h1>${first}<br><em>${second}</em></h1><p>${caption}</p></section>`;
   }
-  if (state.phase === 'recap-tease' || state.phase === 'recap') {
+  if (state.phase === 'recap-why') {
     const { card } = state;
-    const revealed = state.phase === 'recap';
+    return `<section class="show-card finale-scene why-scene">
+      ${surfer()}${kicker('ПОДОЖДИТЕ-КА')}
+      <h1>А <em>почему?</em></h1>
+      <p class="why-topic">«${escape(card.topic)}» · ${percent(card.rating)}</p>
+      <p class="why-question">${nameOf(card.subject)}, ${whyLine(card.rating).toLowerCase()}</p>
+      ${state.host === state.me ? button('Ладно, дальше!', 'next-recap') : ''}
+    </section>`;
+  }
+  if (state.phase === 'recap') {
+    const { card } = state;
+    const [tone, line] = reaction(card.rating);
     return `${kicker('ФИНАЛ · КАРТОЧКА ' + state.turn.join(' / '))}
-      <h1>Как думает <em>${nameOf(card.subject)}?</em></h1>
-      <p class="topic">${escape(card.topic)}</p>
-      ${revealed ? `
-        <p class="reveal-value">${percent(card.rating)}</p>
-        ${recap(card, nameOf, state.me, false)}
+      <h1>Вот как думает <em>${nameOf(card.subject)}</em></h1>
+      <section class="reaction-card" data-tone="${tone}">
+        <p class="reaction-topic">«${escape(card.topic)}»</p>
+        <p class="reaction-line">${line}</p>
+        <strong>${percent(card.rating)}</strong>
+      </section>
+        ${recap(card, nameOf, false)}
         ${state.host === state.me ? button(state.turn[0] === state.turn[1] ? 'Объявить победителя' : 'Следующая карточка', 'next-recap')
-          : waiting('Хост перелистнёт, когда все договорят.')}` : `
-        <p class="lede">Вот что подумали друзья…</p>
-        ${card.guesses.length ? `<ul class="recap-guesses">${card.guesses.map(({ playerId, value }) =>
-          `<li><span>${nameOf(playerId)}</span><strong>${percent(value)}</strong></li>`).join('')}</ul>`
-          : waiting('В этот раз никто не рискнул угадать.')}`}`;
+          : waiting('Хост перелистнёт, когда все договорят.')}`;
   }
   if (state.phase === 'lobby') {
     return `${kicker('ЛОББИ · ' + state.players.length + ' / 10')}
@@ -206,7 +230,7 @@ function roundScreen(state) {
       <div class="recap-deck">${state.results.map((result, i) => `<details class="recap-card">
         <summary><span>Ход ${i + 1} · ${nameOf(result.subject)}</span><strong>${percent(result.rating)}</strong>
           <span class="recap-topic">«${escape(result.topic)}»</span></summary>
-        ${recap(result, nameOf, state.me)}
+        ${recap(result, nameOf)}
       </details>`).join('')}</div>
       </section>`;
   }
@@ -240,18 +264,12 @@ function roundScreen(state) {
         state.done ? receipt('Догадка под замком!', 'Пока держим интригу.') : slider('Твоя догадка', 'guess')}`;
 }
 
-function recap({ subject, rating, guesses, winners, askWhy, debate }, nameOf, me, detailed = true) {
+function recap({ rating, guesses, winners, debate }, nameOf, detailed = true) {
   return `${detailed ? revealScale(rating, guesses, winners) : ''}
     ${guesses.length ? `<ul class="recap-guesses">${guesses.map(({ playerId, value, distance }) =>
       `<li${winners.includes(playerId) ? ' class="recap-hit"' : ''}><span>${nameOf(playerId)}</span><strong>${percent(value)}</strong>
       ${detailed ? `<small>Мимо на ${distance} п. п.</small>` : ''}
       ${winners.includes(playerId) ? '<small>Ближе всех</small>' : ''}</li>`).join('')}</ul>` : waiting('В этом ходу догадок не было.')}
-    ${askWhy ? `<aside class="why-card">
-      <strong>А почему?</strong>
-      <p>${subject === me
-        ? 'Расскажи компании, почему ты поставил именно такую оценку.'
-        : `${nameOf(subject)}, расскажи, почему именно такая оценка!`}</p>
-    </aside>` : ''}
     ${debate ? `<aside class="why-card"><strong>Разные берега</strong>
       <p>${nameOf(debate[0].playerId)} — ${percent(debate[0].value)}, а ${nameOf(debate[1].playerId)} — ${percent(debate[1].value)}. Кто как рассуждал?</p></aside>` : ''}`;
 }
@@ -260,7 +278,7 @@ export function roomScreen(state) {
   return `<section class="panel round">
     <section class="round-status" aria-label="Время и готовность">
       <span id="progress"></span>
-      ${state.deadline !== null && !['sealed', 'intro', 'recap-tease'].includes(state.phase) ? `
+      ${state.deadline !== null && !['sealed', 'intro'].includes(state.phase) ? `
         <div class="round-clock">
           <span class="clock-face" aria-hidden="true"><span class="clock-hand"></span></span>
           <span class="clock-readout"><small>ДО КОНЦА ХОДА</small><time id="timer" role="timer"></time></span>

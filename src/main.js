@@ -9,7 +9,8 @@ let audio;
 let output;
 const clips = new Map();
 const effects = {
-  paper: ['paper-slide', .44, .6],
+  splash: ['water-splash', .48, 1.3],
+  bubble: ['water-bubble', .56, .5],
   drum: ['drum-roll', .48, 2.3],
   applause: ['applause', .48, 2.4],
   tick: ['clock-tick', .35, .5],
@@ -111,9 +112,9 @@ function applyState(next, id) {
     app.classList.add('in-room');
     app.innerHTML = roomScreen(state);
     if (changesPage) app.firstElementChild.classList.add('page-turn');
-    if (changesPage && state.phase === 'intro') void playEffect(state.nextPhase === 'winner' ? 'drum' : 'paper');
-    if (changesPage && state.phase === 'sealed') void playEffect('paper');
-    if (changesPage && ['recap-tease', 'recap'].includes(state.phase)) void playEffect('paper');
+    if (changesPage && state.phase === 'intro') void playEffect(state.nextPhase === 'winner' ? 'drum' : 'splash');
+    if (changesPage && state.phase === 'recap') void playEffect('splash');
+    if (changesPage && ['sealed', 'recap-why'].includes(state.phase)) void playEffect('bubble');
     if (changesPage && state.phase === 'winner' && state.winners.length) {
       const finalStep = state.step;
       setTimeout(() => {
@@ -185,7 +186,7 @@ async function action(type, value) {
   const step = state.step;
   const data = await request('rooms/' + session.code, { type, value, step }, session.token);
   applyState(data.state, id);
-  if (!data.error && data.state.step === step) void playEffect('paper');
+  if (!data.error && data.state.step === step) void playEffect('bubble');
   message(data.error);
 }
 
