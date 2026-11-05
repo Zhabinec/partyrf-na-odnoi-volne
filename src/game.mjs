@@ -139,7 +139,7 @@ export function act(game, { id, isHost, players }, action, now, random = Math.ra
 
 export function view(game, id) {
   const { phase, step, deadline } = game;
-  const data = { phase, step, deadline, notice: game.notice };
+  const data = { phase, step, deadline, duration: durations[phase] ?? null, notice: game.notice };
   if (phase === 'lobby') return data;
   if (phase === 'finished') return { ...data, scores: game.scores, results: game.results, highlight: game.highlight };
   if (phase === 'sealed') return { ...data, turn: [game.turnIndex + 1, game.turns.length] };

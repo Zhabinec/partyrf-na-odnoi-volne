@@ -188,7 +188,14 @@ function recap({ subject, rating, guesses, winners, askWhy, debate }, nameOf, me
 
 export function roomScreen(state) {
   return `<section class="panel round">
-    <section class="round-status" aria-label="Время и готовность"><span id="progress"></span><time id="timer"></time></section>
+    <section class="round-status" aria-label="Время и готовность">
+      <span id="progress"></span>
+      ${state.deadline !== null && state.phase !== 'sealed' ? `
+        <div class="round-clock">
+          <span class="clock-face" aria-hidden="true"><span class="clock-hand"></span></span>
+          <span class="clock-readout"><small>ДО КОНЦА ХОДА</small><time id="timer" role="timer"></time></span>
+        </div>` : ''}
+    </section>
     ${roundScreen(state)}
   </section>`;
 }

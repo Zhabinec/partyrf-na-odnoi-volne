@@ -122,9 +122,53 @@ button:disabled { cursor: wait; opacity: .65; }
 button.secondary { background: transparent; color: var(--paper); border-color: var(--edge); }
 :focus-visible { outline: .18rem solid var(--foam); outline-offset: .22rem; }
 .room-code { text-transform: uppercase; }
-.round-status { display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); margin-bottom: .65rem; }
-.round-status:has(:empty):not(:has(time:not([hidden]))) { margin-bottom: 0; }
-time { color: var(--sand); font-variant-numeric: tabular-nums; }
+.round-status { display: flex; align-items: center; justify-content: space-between; gap: .55rem; color: var(--muted); margin-bottom: .65rem; }
+.round-status:not(:has(.round-clock)) { margin-bottom: 0; }
+.round-clock {
+  --clock-color: var(--foam);
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  color: var(--clock-color);
+}
+.clock-face {
+  width: clamp(2.5rem, 9vw, 4.4rem);
+  aspect-ratio: 1;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--clock-color) var(--remaining, 100%), var(--edge) 0);
+}
+.clock-face::before {
+  content: "";
+  position: absolute;
+  inset: 7%;
+  border-radius: inherit;
+  background: var(--field);
+}
+.clock-face::after {
+  content: "";
+  position: absolute;
+  width: .38rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: currentColor;
+}
+.clock-hand {
+  position: absolute;
+  bottom: 50%;
+  width: .14rem;
+  height: 32%;
+  border-radius: .2rem;
+  background: currentColor;
+  transform-origin: bottom;
+  transform: rotate(var(--hand-angle, 0deg));
+  transition: transform 100ms linear;
+}
+.clock-readout { display: grid; line-height: 1; }
+.clock-readout small { font-size: .59rem; color: var(--muted); }
+.clock-readout time { font-size: clamp(1.6rem, 5vw, 3rem); font-variant-numeric: tabular-nums; letter-spacing: -.06em; }
 .invite { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-block: 1rem .6rem; }
 .invite strong { font-size: clamp(1.5rem, 5vw, 2.6rem); letter-spacing: .14em; }
 .invite button { width: auto; }
@@ -177,7 +221,8 @@ input[type="range"]::-moz-range-thumb {
 .ends small { display: block; font-weight: 500; }
 .reveal-value { animation: reveal 360ms cubic-bezier(.18,.82,.27,1.2) both; }
 @keyframes reveal { from { transform: scale(.72); opacity: 0; } }
-.time-low { color: var(--coral); animation: tide-pulse 1s ease-in-out infinite; }
+.time-low { --clock-color: var(--coral); }
+.time-low .clock-face { animation: tide-pulse 1s ease-in-out infinite; }
 .reveal-scale { margin: 0 auto 1.25rem; max-width: 34rem; }
 .reveal-scale svg { display: block; width: 100%; }
 .reveal-scale figcaption { display: flex; justify-content: space-between; padding-inline: 5%; color: var(--muted); }
@@ -313,4 +358,5 @@ input[type="range"]::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .drum-caption, .confetti { display: none; }
+  .clock-hand { display: none; }
 }

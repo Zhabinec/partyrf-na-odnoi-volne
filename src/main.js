@@ -46,6 +46,20 @@ let requestId = 0;
 let lastApplied = 0;
 let offset = 0;
 let busy = false;
+let lastTick;
+
+function playClockTick(seconds) {
+  if (!soundOn || audio?.state !== 'running') return;
+  const at = audio.currentTime;
+  const hit = audio.createOscillator();
+  const gain = audio.createGain();
+  hit.frequency.value = seconds <= 3 ? 920 : 590;
+  gain.gain.setValueAtTime(.06, at);
+  gain.gain.exponentialRampToValueAtTime(.001, at + .065);
+  hit.connect(gain).connect(audio.destination);
+  hit.start(at);
+  hit.stop(at + .07);
+}
 
 function message(text = '') {
   feedback.textContent = text;
@@ -60,11 +74,20 @@ function inviteUrl() {
 
 function updateClock() {
   const timer = document.querySelector('#timer');
-  if (timer) {
-    const seconds = state.deadline === null ? null : Math.max(0, Math.ceil((state.deadline - Date.now() - offset) / 1000));
-    timer.hidden = seconds === null;
-    timer.classList.toggle('time-low', seconds !== null && seconds <= 5);
-    timer.textContent = seconds === null ? '' : '0:' + String(seconds).padStart(2, '0');
+  if (!timer) return;
+  const remaining = Math.max(0, state.deadline - Date.now() - offset);
+  const seconds = Math.ceil(remaining / 1000);
+  const clock = timer.closest('.round-clock');
+  const fraction = Math.min(1, remaining / (state.duration || remaining || 1));
+  clock.style.setProperty('--remaining', (fraction * 100) + '%');
+  clock.style.setProperty('--hand-angle', (-360 * (1 - fraction)) + 'deg');
+  clock.classList.toggle('time-low', seconds <= 8);
+  const formatted = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+  if (timer.textContent !== formatted) timer.textContent = formatted;
+  const tick = state.step + ':' + seconds;
+  if (tick !== lastTick) {
+    lastTick = tick;
+    if (seconds > 0 && seconds <= 8 && !document.hidden) playClockTick(seconds);
   }
 }
 
@@ -228,4 +251,4 @@ async function poll() {
 if (session) app.textContent = 'Подключаемся к комнате…';
 else showEntrance();
 void poll();
-setInterval(updateClock, 250);
+setInterval(updateClock, 100);
