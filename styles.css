@@ -76,12 +76,13 @@ body {
   pointer-events: none;
 }
 .surf-sun { fill: var(--sand); opacity: .22; }
-.surf-swell { fill: var(--tide); opacity: .12; }
-.surf-foam { fill: none; stroke: var(--foam); stroke-width: 2; opacity: .28; }
+.surf-swell { fill: var(--tide); opacity: .12; animation: shore-swell 5s ease-in-out 3; }
+.surf-foam { fill: none; stroke: var(--foam); stroke-width: 2; opacity: .28; animation: shore-swell 5s .2s ease-in-out 3; }
 h1, h2, p { margin: 0; }
 h1, h2 { line-height: 1.02; overflow-wrap: anywhere; }
 h1 { font-size: clamp(2.3rem, 6vw, 5.5rem); font-weight: 950; letter-spacing: -.055em; }
 .intro h1 { font-size: clamp(3.3rem, 8vw, 7.2rem); line-height: .88; text-transform: uppercase; }
+.intro h1 em { display: inline-block; animation: text-crest 620ms 100ms ease-out both; }
 h2 { font-size: clamp(1.65rem, 3vw, 2.55rem); letter-spacing: -.045em; }
 em { color: var(--foam); font-style: normal; }
 .kicker { color: var(--sand); margin-bottom: .85rem; }
@@ -359,6 +360,7 @@ input[type="range"]::-moz-range-thumb {
 .reaction-card[data-tone="for"] { --reaction-color: var(--foam); }
 .reaction-topic { font-weight: 750; overflow-wrap: anywhere; }
 .reaction-line { font-size: clamp(1.7rem, 6vw, 4rem); line-height: 1.1; font-weight: 950; margin-block: .35rem; }
+.page-turn .reaction-line { animation: text-crest 460ms 220ms ease-out both; }
 .reaction-card strong { font-size: clamp(1.4rem, 5vw, 2.6rem); }
 .why-scene .why-topic { margin-block: 1rem .35rem; color: var(--sand); font-weight: 850; overflow-wrap: anywhere; }
 .why-scene .why-question { font-size: clamp(1.1rem, 3vw, 1.65rem); margin-bottom: 1.25rem; overflow-wrap: anywhere; }
@@ -390,6 +392,8 @@ input[type="range"]::-moz-range-thumb {
 .show-card { text-align: center; padding-block: clamp(2rem, 9vh, 6rem); }
 .show-card h1 { font-size: clamp(2.5rem, 7vw, 6rem); text-transform: uppercase; }
 .show-card h1 em { display: inline-block; animation: winner-drop 460ms 180ms cubic-bezier(.19,1.35,.37,1) both; }
+.page-turn .show-card > p:last-child,
+.page-turn .why-question { animation: text-crest 420ms 260ms ease-out both; }
 .show-card > p:last-child { margin-top: 1rem; color: var(--muted); font-size: clamp(1rem, 2.8vw, 1.4rem); }
 .confetti { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .confetti i {
@@ -437,6 +441,14 @@ input[type="range"]::-moz-range-thumb {
 }
 @keyframes marker-rise { from { opacity: 0; transform: translateY(-10px); } }
 @keyframes tide-pulse { 50% { opacity: .65; } }
+@keyframes shore-swell {
+  50% { transform: translate(-.4rem, -.55rem); }
+}
+@keyframes text-crest {
+  from { opacity: 0; transform: translateY(.4em) rotate(-2deg); }
+  70% { opacity: 1; transform: translateY(-.05em); }
+  to { opacity: 1; transform: none; }
+}
 .round.page-turn {
   position: relative;
   isolation: isolate;
