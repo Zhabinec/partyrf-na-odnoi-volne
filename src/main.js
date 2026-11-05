@@ -31,7 +31,7 @@ function loadClip(file) {
     .catch(() => null);
 }
 
-function updateMusic() {
+function updateMusic(retryLoad = false) {
   if (!state || state.me !== state.host) {
     music?.stop();
     music = null;
@@ -39,10 +39,10 @@ function updateMusic() {
     return;
   }
   if (!soundOn || !audio) return;
-  if (musicClip === undefined) {
+  if (musicClip === undefined || (retryLoad && musicClip === false)) {
     musicClip = null;
     void loadClip('surf-shimmy').then(buffer => {
-      musicClip = buffer;
+      musicClip = buffer ?? false;
       updateMusic();
     });
   }
@@ -60,7 +60,7 @@ function updateMusic() {
     music.start();
   }
   const silent = document.hidden || ['intro', 'sealed', 'recap-why', 'winner', 'moment', 'finished'].includes(state.phase);
-  const volume = silent ? 0 : state.phase === 'lobby' ? .18 : .08;
+  const volume = silent ? 0 : state.phase === 'lobby' ? .42 : .24;
   if (volume === musicVolume) return;
   musicVolume = volume;
   musicGain.gain.setTargetAtTime(volume, audio.currentTime, .09);
@@ -76,8 +76,8 @@ function unlockSound() {
       clips.set(file, loadClip(file));
     }
   }
-  if (audio.state === 'suspended') void audio.resume().catch(() => {});
-  updateMusic();
+  if (audio.state !== 'running') void audio.resume().catch(() => {});
+  updateMusic(true);
 }
 
 async function playEffect(kind) {
@@ -104,7 +104,7 @@ soundToggle.addEventListener('click', () => {
   if (soundOn) unlockSound();
   if (output) output.gain.setTargetAtTime(soundOn ? 1 : 0, audio.currentTime, .015);
 });
-document.addEventListener('visibilitychange', updateMusic);
+document.addEventListener('visibilitychange', () => updateMusic());
 let code = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
 const sessionKey = 'on-wave-session';
 let session;
@@ -298,9 +298,9 @@ app.addEventListener('submit', event => {
 });
 
 app.addEventListener('click', event => {
+  unlockSound();
   const control = event.target.closest('[data-action]');
   if (!control) return;
-  unlockSound();
   void interact(async () => {
     if (control.dataset.action === 'copy') {
       try {
