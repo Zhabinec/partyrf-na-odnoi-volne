@@ -111,13 +111,13 @@ function applyState(next, id) {
     app.classList.add('in-room');
     app.innerHTML = roomScreen(state);
     if (changesPage) app.firstElementChild.classList.add('page-turn');
-    if (changesPage && state.phase === 'intro') void playEffect(state.nextPhase === 'finished' ? 'drum' : 'paper');
+    if (changesPage && state.phase === 'intro') void playEffect(state.nextPhase === 'winner' ? 'drum' : 'paper');
     if (changesPage && state.phase === 'sealed') void playEffect('paper');
     if (changesPage && ['recap-tease', 'recap'].includes(state.phase)) void playEffect('paper');
-    if (changesPage && state.phase === 'finished' && Object.values(state.scores).some(score => score > 0)) {
+    if (changesPage && state.phase === 'winner' && state.winners.length) {
       const finalStep = state.step;
       setTimeout(() => {
-        if (state?.step === finalStep && state.phase === 'finished') void playEffect('applause');
+        if (state?.step === finalStep && state.phase === 'winner') void playEffect('applause');
       }, 120);
     }
     roomLabel.textContent = 'КОМНАТА ' + state.code;

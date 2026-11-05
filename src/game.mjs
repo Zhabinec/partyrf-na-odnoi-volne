@@ -47,10 +47,10 @@ function sealRound(game, now) {
     }
   }
   game.results.push(result);
-  if (guesses.length >= 2) {
+  if (guesses.length) {
     const average = Math.round(guesses.reduce((sum, guess) => sum + guess.value, 0) / guesses.length);
     const gap = Math.abs(average - rating);
-    if (gap > (game.highlight?.gap ?? 0)) {
+    if (!game.highlight || gap > game.highlight.gap) {
       game.highlight = { subject: turn, topic: game.assigned[turn], average, rating, gap };
     }
   }
@@ -121,8 +121,13 @@ export function act(game, { id, isHost, players }, action, now, random = Math.ra
   if (action.type === 'next-recap' && game.phase === 'recap') {
     if (!isHost) return 'Карточки листает хост.';
     game.recapIndex++;
-    if (game.recapIndex === game.results.length) announce(game, 'finished', now);
+    if (game.recapIndex === game.results.length) announce(game, 'winner', now);
     else enter(game, 'recap-tease', now);
+    return;
+  }
+  if (action.type === 'next-finale' && ['winner', 'moment'].includes(game.phase)) {
+    if (!isHost) return 'Финал листает хост.';
+    enter(game, game.phase === 'winner' ? 'moment' : 'finished', now);
     return;
   }
   if (action.type === 'start' && ['lobby', 'finished'].includes(game.phase)) {
@@ -165,7 +170,16 @@ export function view(game, id) {
   const data = { phase, step, deadline, duration: durations[phase] ?? null, notice: game.notice };
   if (phase === 'lobby') return data;
   if (phase === 'intro') return { ...data, nextPhase: game.nextPhase };
-  if (phase === 'finished') return { ...data, scores: game.scores, results: game.results, highlight: game.highlight };
+  if (phase === 'winner') {
+    const best = Math.max(...Object.values(game.scores));
+    const winners = best ? Object.keys(game.scores).filter(id => game.scores[id] === best) : [];
+    return { ...data, winners };
+  }
+  if (phase === 'moment') {
+    const { subject, topic, rating } = game.results[0];
+    return { ...data, highlight: game.highlight ?? { subject, topic, rating, average: null } };
+  }
+  if (phase === 'finished') return { ...data, scores: game.scores, results: game.results };
   if (phase === 'recap' || phase === 'recap-tease') {
     const result = game.results[game.recapIndex];
     const card = phase === 'recap' ? result : {

@@ -236,7 +236,6 @@ input[type="range"]::-moz-range-thumb {
 .answer-marker { animation: marker-rise 320ms 420ms cubic-bezier(.18,.82,.27,1.2) both; }
 .answer-marker path { stroke: var(--sand); stroke-width: 2; }
 .answer-marker circle { fill: var(--field); stroke: var(--sand); stroke-width: 3; }
-.roster .round-winner { box-shadow: inset .2rem 0 var(--sand); animation: winner-glow 850ms 550ms ease-out both; }
 .why-card {
   margin-block: 1rem;
   padding: .85rem 1rem;
@@ -327,6 +326,9 @@ input[type="range"]::-moz-range-thumb {
 .recap-guesses li:nth-child(3n + 2) { animation-delay: 110ms; }
 .recap-guesses li:nth-child(3n) { animation-delay: 220ms; }
 .recap-guesses strong { display: block; color: var(--foam); font-size: 1.4rem; }
+.recap-guesses small { display: block; color: var(--muted); }
+.recap-guesses .recap-hit { border-color: var(--sand); }
+.recap-hit small:last-child { color: var(--sand); font-weight: 800; }
 .winner-stage { position: relative; isolation: isolate; margin-block: 1rem 2rem; }
 .winner-card {
   position: relative;
@@ -340,6 +342,14 @@ input[type="range"]::-moz-range-thumb {
 }
 .winner-card h2 { margin-block: .35rem; }
 .winner-card p { font-weight: 850; }
+.finale-scene { width: min(100%, 53rem); margin-inline: auto; }
+.finale-scene .winner-card h1 { margin-top: .4rem; }
+.finale-scene > button { width: auto; min-width: min(12rem, 100%); }
+.moment-pair { display: flex; justify-content: center; flex-wrap: wrap; gap: .75rem; margin-block: 1.4rem; }
+.moment-pair p { padding: .75rem 1rem; min-width: 8rem; border-radius: 1rem; background: var(--field); color: var(--muted); }
+.moment-pair strong { display: block; color: var(--foam); font-size: clamp(1.65rem, 6vw, 3.1rem); }
+.moment-pair p:last-child strong { color: var(--sand); }
+.round:has(.final-lineup) > button { margin-block: 1rem; width: auto; }
 .round:has(.show-card) { border: 0; background: transparent; box-shadow: none; }
 .stage.in-room:has(.show-card) { display: grid; grid-template-columns: minmax(0, 1fr); }
 .show-card { text-align: center; padding-block: clamp(2rem, 9vh, 6rem); }
@@ -391,7 +401,6 @@ input[type="range"]::-moz-range-thumb {
   100% { opacity: 0; transform: translateY(8rem) rotate(var(--spin)); }
 }
 @keyframes marker-rise { from { opacity: 0; transform: translateY(-10px); } }
-@keyframes winner-glow { 35% { background: #504729; } }
 @keyframes tide-pulse { 50% { opacity: .65; } }
 .round.page-turn {
   position: relative;
