@@ -6,15 +6,79 @@ const roomLabel = document.querySelector('#room-label');
 const soundToggle = document.querySelector('#sound-toggle');
 let soundOn = true;
 let audio;
+let output;
+let beat = 0;
+let musicPhase;
+
+const bassNotes = [45, null, null, 45, null, 52, null, 55, 57, null, null, 55, null, 52, 48, null];
+const leadNotes = [null, null, 69, null, 72, null, null, 76, null, 74, null, 72, null, 69, null, null];
 
 function unlockSound() {
   if (!soundOn || !window.AudioContext) return;
-  audio ??= new AudioContext();
+  if (!audio) {
+    audio = new AudioContext();
+    output = audio.createGain();
+    output.connect(audio.destination);
+  }
   if (audio.state === 'suspended') void audio.resume().catch(() => {});
 }
 
+function canPlay() {
+  return soundOn && !document.hidden && audio?.state === 'running';
+}
+
+function tone(note, at, length, volume, type = 'triangle') {
+  const voice = audio.createOscillator();
+  const envelope = audio.createGain();
+  voice.type = type;
+  voice.frequency.value = 440 * 2 ** ((note - 69) / 12);
+  envelope.gain.setValueAtTime(.001, at);
+  envelope.gain.linearRampToValueAtTime(volume, at + .009);
+  envelope.gain.exponentialRampToValueAtTime(.001, at + length);
+  voice.connect(envelope).connect(output);
+  voice.start(at);
+  voice.stop(at + length);
+}
+
+function musicBeat() {
+  const phase = state?.phase;
+  const playing = phase === 'lobby' || phase === 'guessing';
+  if (!canPlay() || !playing || (phase === 'guessing' && state.deadline - Date.now() - offset <= 8000)) {
+    musicPhase = undefined;
+    return;
+  }
+  if (musicPhase !== phase) {
+    musicPhase = phase;
+    beat = 0;
+  }
+  const index = beat % bassNotes.length;
+  const transpose = Math.floor(beat / bassNotes.length) % 2 ? -5 : 0;
+  const at = audio.currentTime;
+  const bass = bassNotes[index];
+  const lead = leadNotes[index];
+  const lobby = phase === 'lobby';
+  if (bass !== null) tone(bass + transpose, at, .15, lobby ? .09 : .044);
+  if (lobby && lead !== null) {
+    tone(lead + transpose, at, .12, .045, 'sine');
+    tone(lead + transpose - 5, at + .03, .1, .023);
+  }
+  if (index % 4 === 0) tone(30, at, .07, lobby ? .075 : .045, 'sine');
+  if (index % 4 === 2) tone(96, at, .038, lobby ? .023 : .012, 'square');
+  beat++;
+}
+
+function playCue(kind) {
+  if (!canPlay()) return;
+  const notes = {
+    accepted: [72, 76],
+    turn: [69, 72, 76],
+    sealed: [72, 67],
+  }[kind];
+  notes.forEach((note, i) => tone(note, audio.currentTime + i * .065, .12, .065));
+}
+
 function playFinale() {
-  if (!soundOn || audio?.state !== 'running') return;
+  if (!canPlay()) return;
   const noise = audio.createBuffer(1, Math.round(audio.sampleRate * .07), audio.sampleRate);
   const samples = noise.getChannelData(0);
   for (let i = 0; i < samples.length; i++) samples[i] = (Math.random() * 2 - 1) * (1 - i / samples.length) ** 2;
@@ -24,16 +88,17 @@ function playFinale() {
     const gain = audio.createGain();
     hit.buffer = noise;
     gain.gain.value = i === 11 ? .16 : .04 + i * .006;
-    hit.connect(gain).connect(audio.destination);
+    hit.connect(gain).connect(output);
     hit.start(start + i * .073);
   }
+  [69, 73, 76, 81].forEach((note, i) => tone(note, start + .83 + i * .055, .28, .075));
 }
 
 soundToggle.addEventListener('click', () => {
   soundOn = !soundOn;
   soundToggle.setAttribute('aria-pressed', String(soundOn));
   if (soundOn) unlockSound();
-  else if (audio?.state === 'running') void audio.suspend().catch(() => {});
+  if (output) output.gain.setTargetAtTime(soundOn ? 1 : 0, audio.currentTime, .015);
 });
 const code = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
 const sessionKey = 'on-wave-session';
@@ -49,14 +114,14 @@ let busy = false;
 let lastTick;
 
 function playClockTick(seconds) {
-  if (!soundOn || audio?.state !== 'running') return;
+  if (!canPlay()) return;
   const at = audio.currentTime;
   const hit = audio.createOscillator();
   const gain = audio.createGain();
   hit.frequency.value = seconds <= 3 ? 920 : 590;
   gain.gain.setValueAtTime(.06, at);
   gain.gain.exponentialRampToValueAtTime(.001, at + .065);
-  hit.connect(gain).connect(audio.destination);
+  hit.connect(gain).connect(output);
   hit.start(at);
   hit.stop(at + .07);
 }
@@ -105,6 +170,8 @@ function applyState(next, id) {
     app.innerHTML = roomScreen(state);
     if (changesPage) app.firstElementChild.classList.add('page-turn');
     if (changesPage && state.phase === 'finished') playFinale();
+    if (changesPage && state.phase === 'sealed') playCue('sealed');
+    if (changesPage && state.phase === 'guessing') playCue('turn');
     roomLabel.textContent = 'КОМНАТА ' + state.code;
     const invite = document.querySelector('#invite-link');
     if (invite) invite.value = inviteUrl();
@@ -167,8 +234,10 @@ function showEntrance() {
 
 async function action(type, value) {
   const id = ++requestId;
-  const data = await request('rooms/' + session.code, { type, value, step: state.step }, session.token);
+  const step = state.step;
+  const data = await request('rooms/' + session.code, { type, value, step }, session.token);
   applyState(data.state, id);
+  if (!data.error && data.state.step === step) playCue('accepted');
   message(data.error);
 }
 
@@ -252,3 +321,4 @@ if (session) app.textContent = 'Подключаемся к комнате…';
 else showEntrance();
 void poll();
 setInterval(updateClock, 100);
+setInterval(musicBeat, 145);
