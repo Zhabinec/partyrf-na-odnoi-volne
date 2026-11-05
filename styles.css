@@ -190,6 +190,15 @@ input[type="range"]::-moz-range-thumb {
 .answer-marker path { stroke: var(--sand); stroke-width: 2; }
 .answer-marker circle { fill: var(--field); stroke: var(--sand); stroke-width: 3; }
 .roster .round-winner { box-shadow: inset .2rem 0 var(--sand); animation: winner-glow 850ms 550ms ease-out both; }
+.why-card {
+  margin-block: 1rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--tide);
+  border-radius: .8rem;
+  background: var(--field);
+  animation: marker-rise 320ms 740ms ease-out both;
+}
+.why-card strong { color: var(--foam); font-size: 1.3rem; }
 @keyframes marker-rise { from { opacity: 0; transform: translateY(-10px); } }
 @keyframes winner-glow { 35% { background: #504729; } }
 @keyframes tide-pulse { 50% { opacity: .65; } }

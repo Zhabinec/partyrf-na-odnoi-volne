@@ -28,7 +28,10 @@ function reveal(game, now) {
   })).sort((a, b) => a.distance - b.distance);
   const winners = guesses.filter(guess => guess.distance === guesses[0].distance);
   for (const { playerId } of winners) game.scores[playerId]++;
-  game.result = { rating, guesses, winners: winners.map(guess => guess.playerId) };
+  game.result = {
+    rating, guesses, winners: winners.map(guess => guess.playerId),
+    askWhy: game.whyPlayers.includes(turn),
+  };
   enter(game, 'reveal', now);
 }
 
@@ -55,6 +58,8 @@ function advance(game, now, random) {
         enter(game, 'lobby', now);
         break;
       }
+      const questionCount = Math.max(1, Math.round(game.turns.length / 3));
+      game.whyPlayers = shuffle(game.turns, random).slice(0, questionCount);
       game.turnIndex = -1;
       nextTurn(game, now);
       break;

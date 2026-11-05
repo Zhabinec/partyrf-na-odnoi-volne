@@ -122,13 +122,19 @@ function roundScreen(state) {
       ${state.subject === state.me ? waiting('Сейчас угадывают твою оценку.') :
         state.done ? waiting('Догадка принята. Ждём раскрытия.') : slider('Твоя догадка', 'guess')}`;
   }
-  const { rating, guesses, winners } = state.result;
+  const { rating, guesses, winners, askWhy } = state.result;
   return `${kicker('РАСКРЫТИЕ · ' + turn)}<h1>Ответ игрока <em>${nameOf(state.subject)}</em></h1>${topic}
     <strong class="reveal-value">${percent(rating)}</strong>
     ${revealScale(rating, guesses, winners)}
     ${guesses.length ? `<ul class="roster">${guesses.map(({ playerId, value, distance }) =>
       `<li${winners.includes(playerId) ? ' class="round-winner"' : ''}><span>${nameOf(playerId)} <small>${percent(value)} · ошибка ${distance} п. п.</small></span>
       <b>${winners.includes(playerId) ? '+1 очко' : ''}</b></li>`).join('')}</ul>` : waiting('В этом ходу догадок не было.')}
+    ${askWhy ? `<aside class="why-card">
+      <strong>А почему?</strong>
+      <p>${state.subject === state.me
+        ? 'Расскажи компании, почему ты поставил именно такую оценку.'
+        : `${nameOf(state.subject)}, расскажи, почему именно такая оценка!`}</p>
+    </aside>` : ''}
     ${state.host === state.me ? button(state.turn[0] === state.turn[1] ? 'Показать итог' : 'Следующий игрок', 'next') : waiting('Ждём следующего хода.')}`;
 }
 
