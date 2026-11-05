@@ -31,6 +31,7 @@ function updateClock() {
   if (timer) {
     const seconds = state.deadline === null ? null : Math.max(0, Math.ceil((state.deadline - Date.now() - offset) / 1000));
     timer.hidden = seconds === null;
+    timer.classList.toggle('time-low', seconds !== null && seconds <= 5);
     timer.textContent = seconds === null ? '' : '0:' + String(seconds).padStart(2, '0');
   }
 }
@@ -38,6 +39,7 @@ function updateClock() {
 function applyState(next, id) {
   if (id < lastApplied) return;
   lastApplied = id;
+  const changesPage = state?.step !== next.step;
   state = next;
   offset = next.now - Date.now();
   const key = JSON.stringify([state.step, state.done, state.phase, state.players, state.me]);
@@ -46,6 +48,7 @@ function applyState(next, id) {
     renderedKey = key;
     app.classList.add('in-room');
     app.innerHTML = roomScreen(state);
+    if (changesPage) app.firstElementChild.classList.add('page-turn');
     roomLabel.textContent = 'КОМНАТА ' + state.code;
     const invite = document.querySelector('#invite-link');
     if (invite) invite.value = inviteUrl();

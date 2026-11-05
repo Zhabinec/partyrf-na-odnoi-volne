@@ -12,6 +12,11 @@ const kicker = text => `<p class="kicker">${text}</p>`;
 export function entrance(code) {
   return `
     <section class="intro">
+      <svg class="surf-art" viewBox="0 0 580 320" aria-hidden="true" focusable="false">
+        <circle class="surf-sun" cx="438" cy="111" r="76"/>
+        <path class="surf-swell" d="M0 259C122 256 179 231 252 153S440 35 495 116C443 88 391 114 408 151C433 203 518 167 580 127V320H0Z"/>
+        <path class="surf-foam" d="M0 278C146 267 201 223 273 151S435 63 495 116M224 280C332 223 370 197 426 203S510 222 580 172M358 283C448 240 512 255 580 214"/>
+      </svg>
       ${kicker('03–10 ИГРОКОВ / ОНЛАЙН')}
       <h1>На одной<br><em>волне</em></h1>
       <p class="lede">Ты знаешь, что думают твои друзья? Проверь по шкале от −100% до +100%.</p>
@@ -52,6 +57,25 @@ function slider(label, action) {
 
 function waiting(message) {
   return `<p class="waiting">${message}</p>`;
+}
+
+function revealScale(rating, guesses, winners) {
+  const position = value => 20 + (value + 100) * 1.8;
+  const winningValues = new Set(guesses.filter(guess => winners.includes(guess.playerId)).map(guess => guess.value));
+  const values = [...new Set(guesses.map(guess => guess.value))];
+  const answer = position(rating);
+  return `<figure class="reveal-scale" aria-label="Догадки и настоящий ответ на шкале">
+    <svg viewBox="0 0 400 52" aria-hidden="true">
+      <path class="reveal-rail" d="M20 31H380 M200 25V37"/>
+      ${values.map(value => `<circle class="guess-marker${winningValues.has(value) ? ' closest' : ''}" cx="${position(value)}" cy="31" r="5"/>`).join('')}
+      <g class="answer-marker">
+        <path d="M${answer} 10v35"/>
+        <circle cx="${answer}" cy="31" r="9"/>
+      </g>
+    </svg>
+    <figcaption><span>−100%</span><span>0%</span><span>+100%</span></figcaption>
+    <p class="scale-key"><span>● Догадки</span><span>◎ Настоящий ответ</span></p>
+  </figure>`;
 }
 
 function roundScreen(state) {
@@ -101,8 +125,9 @@ function roundScreen(state) {
   const { rating, guesses, winners } = state.result;
   return `${kicker('РАСКРЫТИЕ · ' + turn)}<h1>Ответ игрока <em>${nameOf(state.subject)}</em></h1>${topic}
     <strong class="reveal-value">${percent(rating)}</strong>
+    ${revealScale(rating, guesses, winners)}
     ${guesses.length ? `<ul class="roster">${guesses.map(({ playerId, value, distance }) =>
-      `<li><span>${nameOf(playerId)} <small>${percent(value)} · ошибка ${distance} п. п.</small></span>
+      `<li${winners.includes(playerId) ? ' class="round-winner"' : ''}><span>${nameOf(playerId)} <small>${percent(value)} · ошибка ${distance} п. п.</small></span>
       <b>${winners.includes(playerId) ? '+1 очко' : ''}</b></li>`).join('')}</ul>` : waiting('В этом ходу догадок не было.')}
     ${state.host === state.me ? button(state.turn[0] === state.turn[1] ? 'Показать итог' : 'Следующий игрок', 'next') : waiting('Ждём следующего хода.')}`;
 }

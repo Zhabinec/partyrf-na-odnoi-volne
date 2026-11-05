@@ -1,5 +1,5 @@
 export const limits = { minPlayers: 3, maxPlayers: 10, name: 24, topic: 72 };
-export const durations = { topics: 45_000, rating: 30_000, guessing: 20_000 };
+export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000 };
 
 export function newGame() {
   return { phase: 'lobby', step: 0, deadline: null };
