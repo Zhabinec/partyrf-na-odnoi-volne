@@ -8,6 +8,10 @@ const soundToggle = document.querySelector('#sound-toggle');
 let soundOn = true;
 let audio;
 let output;
+let musicClip;
+let music;
+let musicGain;
+let musicVolume;
 const clips = new Map();
 const effects = {
   splash: ['water-splash', .48, 1.3],
@@ -17,6 +21,51 @@ const effects = {
   tick: ['clock-tick', .35, .5],
 };
 
+function loadClip(file) {
+  return fetch('./assets/' + file + '.mp3')
+    .then(response => {
+      if (!response.ok) throw new Error('Sound unavailable');
+      return response.arrayBuffer();
+    })
+    .then(buffer => audio.decodeAudioData(buffer))
+    .catch(() => null);
+}
+
+function updateMusic() {
+  if (!state || state.me !== state.host) {
+    music?.stop();
+    music = null;
+    musicVolume = undefined;
+    return;
+  }
+  if (!soundOn || !audio) return;
+  if (musicClip === undefined) {
+    musicClip = null;
+    void loadClip('surf-shimmy').then(buffer => {
+      musicClip = buffer;
+      updateMusic();
+    });
+  }
+  if (!musicClip) return;
+  if (!music) {
+    musicGain = audio.createGain();
+    musicGain.gain.value = 0;
+    musicGain.connect(output);
+    music = audio.createBufferSource();
+    music.buffer = musicClip;
+    music.loop = true;
+    music.connect(musicGain);
+    const gain = musicGain;
+    music.onended = () => gain.disconnect();
+    music.start();
+  }
+  const silent = document.hidden || ['intro', 'sealed', 'recap-why', 'winner', 'moment', 'finished'].includes(state.phase);
+  const volume = silent ? 0 : state.phase === 'lobby' ? .18 : .08;
+  if (volume === musicVolume) return;
+  musicVolume = volume;
+  musicGain.gain.setTargetAtTime(volume, audio.currentTime, .09);
+}
+
 function unlockSound() {
   if (!soundOn || !window.AudioContext) return;
   if (!audio) {
@@ -24,13 +73,11 @@ function unlockSound() {
     output = audio.createGain();
     output.connect(audio.destination);
     for (const [file] of Object.values(effects)) {
-      clips.set(file, fetch('./assets/' + file + '.mp3')
-        .then(response => response.ok ? response.arrayBuffer() : Promise.reject(new Error('Sound unavailable')))
-        .then(buffer => audio.decodeAudioData(buffer))
-        .catch(() => null));
+      clips.set(file, loadClip(file));
     }
   }
   if (audio.state === 'suspended') void audio.resume().catch(() => {});
+  updateMusic();
 }
 
 async function playEffect(kind) {
@@ -57,6 +104,7 @@ soundToggle.addEventListener('click', () => {
   if (soundOn) unlockSound();
   if (output) output.gain.setTargetAtTime(soundOn ? 1 : 0, audio.currentTime, .015);
 });
+document.addEventListener('visibilitychange', updateMusic);
 let code = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
 const sessionKey = 'on-wave-session';
 let session;
@@ -105,6 +153,7 @@ function applyState(next, id) {
   lastApplied = id;
   const changesPage = state?.step !== next.step;
   state = next;
+  updateMusic();
   offset = next.now - Date.now();
   const key = JSON.stringify([state.step, state.done, state.phase, state.players, state.me, state.host]);
   if (key !== renderedKey) {
@@ -180,6 +229,7 @@ async function sync() {
 }
 
 function showEntrance() {
+  updateMusic();
   roomLabel.textContent = 'ИГРА ДЛЯ КОМПАНИИ';
   leaveRoom.hidden = true;
   app.classList.remove('in-room');

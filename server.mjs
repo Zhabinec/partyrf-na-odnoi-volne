@@ -14,6 +14,7 @@ const assets = new Map([
   ['/assets/drum-roll.mp3', ['assets/drum-roll.mp3', 'audio/mpeg']],
   ['/assets/applause.mp3', ['assets/applause.mp3', 'audio/mpeg']],
   ['/assets/clock-tick.mp3', ['assets/clock-tick.mp3', 'audio/mpeg']],
+  ['/assets/surf-shimmy.mp3', ['assets/surf-shimmy.mp3', 'audio/mpeg']],
   ['/src/main.js', ['src/main.js', 'text/javascript']],
   ['/src/ui.js', ['src/ui.js', 'text/javascript']],
 ]);
