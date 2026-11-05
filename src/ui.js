@@ -22,7 +22,32 @@ export const situations = [
   'Поехать на выходные в случайный город',
   'Включить общий плейлист и дать всем по одному треку',
   'Принести на день рождения еду вместо подарка',
+  'Друг говорит «я уже выхожу», но ещё дома',
+  'Поехать в отпуск вместе и ни разу не поесть вместе',
+  'Заказать себе десерт, когда все сказали «мы не будем»',
+  'Послать другу голосовое на семь минут без предупреждения',
+  'Устроить сюрприз тому, кто терпеть не может сюрпризы',
+  'Отдать другу последний кусок пиццы, если он не просил',
 ];
+
+function surfer() {
+  return `<svg class="surfer" viewBox="0 0 92 72" aria-hidden="true" focusable="false">
+    <path class="surfboard" d="M8 59Q19 49 53 52Q78 54 86 58Q70 65 39 65Q13 65 8 59Z"/>
+    <path class="board-stripe" d="M23 60Q43 56 72 59"/>
+    <g class="surfer-calm">
+      <path d="M41 30L47 45L61 49M47 43L31 52M44 35L58 40" />
+      <circle cx="38" cy="21" r="8"/>
+    </g>
+    <g class="surfer-crest">
+      <path d="M47 28L44 43L31 48L26 56M44 43L60 56M46 31L62 32L74 21M45 31L30 34L20 24"/>
+      <circle cx="49" cy="17" r="8"/>
+    </g>
+    <g class="surfer-ebb">
+      <path d="M45 35L55 45L61 53M47 39L34 53M49 41L69 51"/>
+      <circle cx="37" cy="29" r="8"/>
+    </g>
+  </svg>`;
+}
 
 export function entrance(code) {
   return `
@@ -64,10 +89,11 @@ function slider(label, action) {
   return `<form data-form="${action}" class="scale-form">
     <label class="sr-only" for="scale">${label}</label>
     <div class="wave-meter" data-zone="calm">
-      <svg viewBox="0 0 400 110" preserveAspectRatio="none" aria-hidden="true">
+      <svg class="water-art" viewBox="0 0 400 110" preserveAspectRatio="none" aria-hidden="true">
         <path class="meter-water" d="M0 0Q50 -20 100 0T200 0T300 0T400 0V230H0Z"/>
         <path class="meter-foam" d="M0 0Q50 -20 100 0T200 0T300 0T400 0"/>
       </svg>
+      ${surfer()}
       <output for="scale" id="reading">0%</output>
     </div>
     <input id="scale" name="value" type="range" min="-100" max="100" value="0" aria-valuetext="0%">
@@ -82,7 +108,7 @@ function waiting(message) {
 }
 
 function receipt(title, message) {
-  return `<div class="answer-receipt" role="status"><span aria-hidden="true">✓</span>
+  return `<div class="answer-receipt" role="status"><span aria-hidden="true">✓</span>${surfer()}
     <div><strong>${title}</strong><p>${message}</p></div></div>`;
 }
 
@@ -115,8 +141,24 @@ function roundScreen(state) {
       finished: ['ФИНАЛ', 'И победил…', 'Так, где барабанщик?', 'Сейчас узнаем, кто поймал волну.'],
     };
     const [label, first, second, caption] = lines[state.nextPhase];
-    return `<section class="show-card">${kicker(label)}
+    return `<section class="show-card">${surfer()}${kicker(label)}
       <h1>${first}<br><em>${second}</em></h1><p>${caption}</p></section>`;
+  }
+  if (state.phase === 'recap-tease' || state.phase === 'recap') {
+    const { card } = state;
+    const revealed = state.phase === 'recap';
+    return `${kicker('ФИНАЛ · КАРТОЧКА ' + state.turn.join(' / '))}
+      <h1>Как думает <em>${nameOf(card.subject)}?</em></h1>
+      <p class="topic">${escape(card.topic)}</p>
+      ${revealed ? `
+        <p class="reveal-value">${percent(card.rating)}</p>
+        ${recap(card, nameOf, state.me)}
+        ${state.host === state.me ? button(state.turn[0] === state.turn[1] ? 'Объявить победителя' : 'Следующая карточка', 'next-recap')
+          : waiting('Хост перелистнёт, когда все договорят.')}` : `
+        <p class="lede">Вот что подумали друзья…</p>
+        ${card.guesses.length ? `<ul class="recap-guesses">${card.guesses.map(({ playerId, value }) =>
+          `<li><span>${nameOf(playerId)}</span><strong>${percent(value)}</strong></li>`).join('')}</ul>`
+          : waiting('В этот раз никто не рискнул угадать.')}`}`;
   }
   if (state.phase === 'lobby') {
     return `${kicker('ЛОББИ · ' + state.players.length + ' / 10')}
@@ -206,7 +248,7 @@ export function roomScreen(state) {
   return `<section class="panel round">
     <section class="round-status" aria-label="Время и готовность">
       <span id="progress"></span>
-      ${state.deadline !== null && !['sealed', 'intro'].includes(state.phase) ? `
+      ${state.deadline !== null && !['sealed', 'intro', 'recap-tease'].includes(state.phase) ? `
         <div class="round-clock">
           <span class="clock-face" aria-hidden="true"><span class="clock-hand"></span></span>
           <span class="clock-readout"><small>ДО КОНЦА ХОДА</small><time id="timer" role="timer"></time></span>

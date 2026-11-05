@@ -260,7 +260,25 @@ input[type="range"]::-moz-range-thumb {
 }
 .wave-meter[data-zone="ebb"], .wave-meter[data-zone="storm"] { --water-color: var(--coral); }
 .wave-meter[data-zone="crest"] { --water-color: var(--foam); }
-.wave-meter svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.wave-meter .water-art { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.surfer { width: clamp(3rem, 12vw, 5.75rem); overflow: visible; }
+.surfer g { fill: var(--coral); stroke: var(--paper); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.surfer g path { fill: none; }
+.surfboard { fill: var(--sand); stroke: var(--ink); stroke-width: 2; }
+.board-stripe { fill: none; stroke: var(--coral); stroke-width: 2; }
+.surfer .surfer-crest, .surfer .surfer-ebb { display: none; }
+.wave-meter .surfer {
+  position: absolute;
+  right: 4%;
+  top: clamp(0%, var(--waterline), 82%);
+  transform: translateY(-42%) rotate(var(--board-tilt, 0deg));
+  transition: top 180ms ease-out, transform 220ms cubic-bezier(.19,1.35,.37,1);
+}
+.wave-meter[data-zone="crest"] { --board-tilt: -19deg; }
+.wave-meter[data-zone="storm"] { --board-tilt: 23deg; }
+.wave-meter:is([data-zone="crest"], [data-zone="storm"]) .surfer-calm { display: none; }
+.wave-meter[data-zone="crest"] .surfer-crest, .wave-meter[data-zone="storm"] .surfer-ebb { display: inline; }
+.show-card > .surfer { width: clamp(4.5rem, 15vw, 8rem); transform: rotate(-12deg); }
 .meter-water, .meter-foam {
   transform: translateY(var(--waterline));
   transition: transform 180ms ease-out, fill 180ms ease-out, stroke 180ms ease-out;
@@ -292,6 +310,23 @@ input[type="range"]::-moz-range-thumb {
 }
 .answer-receipt strong { color: var(--foam); }
 .answer-receipt p { color: var(--muted); }
+.answer-receipt .surfer { order: 1; margin-left: auto; animation: surfer-dive 440ms ease-in both; }
+@keyframes surfer-dive {
+  from { transform: translateY(-.5rem) rotate(-15deg); }
+  to { transform: translateY(.8rem) rotate(25deg); opacity: 0; }
+}
+.recap-guesses { display: flex; flex-wrap: wrap; gap: .65rem; padding: 0; list-style: none; }
+.recap-guesses li {
+  padding: .65rem .9rem;
+  border: 1px solid var(--edge);
+  border-radius: .75rem;
+  background: var(--field);
+  animation: winner-drop 360ms cubic-bezier(.19,1.35,.37,1) both;
+  overflow-wrap: anywhere;
+}
+.recap-guesses li:nth-child(3n + 2) { animation-delay: 110ms; }
+.recap-guesses li:nth-child(3n) { animation-delay: 220ms; }
+.recap-guesses strong { display: block; color: var(--foam); font-size: 1.4rem; }
 .winner-stage { position: relative; isolation: isolate; margin-block: 1rem 2rem; }
 .winner-card {
   position: relative;

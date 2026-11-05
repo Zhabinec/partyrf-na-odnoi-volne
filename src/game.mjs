@@ -1,5 +1,5 @@
 export const limits = { minPlayers: 3, maxPlayers: 10, name: 24, topic: 72 };
-export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000, sealed: 1800, intro: 2400 };
+export const durations = { topics: 55_000, rating: 40_000, guessing: 30_000, sealed: 1800, intro: 2400, 'recap-tease': 2300 };
 
 export function newGame() {
   return { phase: 'lobby', step: 0, deadline: null };
@@ -94,13 +94,19 @@ function advance(game, now, random) {
     case 'sealed':
       nextTurn(game, now);
       break;
+    case 'recap-tease':
+      enter(game, 'recap', now);
+      break;
   }
 }
 
 function nextTurn(game, now) {
   game.turnIndex++;
   game.guesses = {};
-  if (game.turnIndex === game.turns.length) announce(game, 'finished', now);
+  if (game.turnIndex === game.turns.length) {
+    game.recapIndex = 0;
+    enter(game, 'recap-tease', now);
+  }
   else if (game.turnIndex === 0) announce(game, 'guessing', now);
   else enter(game, 'guessing', now);
 }
@@ -112,6 +118,13 @@ export function tick(game, now, random = Math.random) {
 export function act(game, { id, isHost, players }, action, now, random = Math.random) {
   tick(game, now, random);
   if (action.step !== game.step) return 'Этап уже закончился. Экран обновлён.';
+  if (action.type === 'next-recap' && game.phase === 'recap') {
+    if (!isHost) return 'Карточки листает хост.';
+    game.recapIndex++;
+    if (game.recapIndex === game.results.length) announce(game, 'finished', now);
+    else enter(game, 'recap-tease', now);
+    return;
+  }
   if (action.type === 'start' && ['lobby', 'finished'].includes(game.phase)) {
     if (!isHost) return 'Партию запускает хост.';
     if (players.length < limits.minPlayers) return 'Нужно хотя бы три игрока.';
@@ -153,6 +166,14 @@ export function view(game, id) {
   if (phase === 'lobby') return data;
   if (phase === 'intro') return { ...data, nextPhase: game.nextPhase };
   if (phase === 'finished') return { ...data, scores: game.scores, results: game.results, highlight: game.highlight };
+  if (phase === 'recap' || phase === 'recap-tease') {
+    const result = game.results[game.recapIndex];
+    const card = phase === 'recap' ? result : {
+      subject: result.subject, topic: result.topic,
+      guesses: result.guesses.map(({ playerId, value }) => ({ playerId, value })).sort((a, b) => a.value - b.value),
+    };
+    return { ...data, card, turn: [game.recapIndex + 1, game.results.length] };
+  }
   if (phase === 'sealed') return { ...data, turn: [game.turnIndex + 1, game.turns.length] };
   data.active = game.active.includes(id);
   if (phase === 'topics' || phase === 'rating') {

@@ -113,6 +113,7 @@ function applyState(next, id) {
     if (changesPage) app.firstElementChild.classList.add('page-turn');
     if (changesPage && state.phase === 'intro') void playEffect(state.nextPhase === 'finished' ? 'drum' : 'paper');
     if (changesPage && state.phase === 'sealed') void playEffect('paper');
+    if (changesPage && ['recap-tease', 'recap'].includes(state.phase)) void playEffect('paper');
     if (changesPage && state.phase === 'finished' && Object.values(state.scores).some(score => score > 0)) {
       const finalStep = state.step;
       setTimeout(() => {
