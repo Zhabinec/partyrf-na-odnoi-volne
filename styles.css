@@ -117,7 +117,9 @@ button {
   transition: transform 160ms, filter 160ms;
 }
 button:hover { filter: brightness(.93); }
-button:active { transform: translateY(.15rem); }
+button:active:not(:disabled) { transform: translateY(.18rem) scale(.98); }
+button[type="submit"] { box-shadow: 0 .22rem 0 #a47835; }
+button[type="submit"]:active:not(:disabled) { box-shadow: 0 .04rem 0 #a47835; }
 button:disabled { cursor: wait; opacity: .65; }
 button.secondary { background: transparent; color: var(--paper); border-color: var(--edge); }
 :focus-visible { outline: .18rem solid var(--foam); outline-offset: .22rem; }
@@ -249,15 +251,47 @@ input[type="range"]::-moz-range-thumb {
 .masthead .badge { margin-left: auto; }
 .wave-meter {
   --waterline: 50%;
+  --water-color: var(--tide);
   position: relative;
   overflow: hidden;
   isolation: isolate;
   border-radius: 1rem;
   background: var(--field);
 }
+.wave-meter[data-zone="ebb"], .wave-meter[data-zone="storm"] { --water-color: var(--coral); }
+.wave-meter[data-zone="crest"] { --water-color: var(--foam); }
 .wave-meter svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
-.meter-water { fill: var(--tide); opacity: .22; transform: translateY(var(--waterline)); transition: transform 180ms ease-out; }
+.meter-water, .meter-foam {
+  transform: translateY(var(--waterline));
+  transition: transform 180ms ease-out, fill 180ms ease-out, stroke 180ms ease-out;
+}
+.meter-water { fill: var(--water-color); opacity: .25; }
+.meter-foam { fill: none; stroke: var(--water-color); stroke-width: 2; opacity: .8; }
 .host-line { min-height: 2.7em; color: var(--foam); font-weight: 750; text-align: center; }
+.answer-receipt {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  margin-top: 1rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--foam);
+  border-radius: 1rem;
+  background: var(--field);
+  animation: winner-drop 330ms cubic-bezier(.19,1.35,.37,1) both;
+}
+.answer-receipt > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.5rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--foam);
+  color: var(--ink);
+  font-size: 1.35rem;
+  font-weight: 950;
+}
+.answer-receipt strong { color: var(--foam); }
+.answer-receipt p { color: var(--muted); }
 .winner-stage { position: relative; isolation: isolate; margin-block: 1rem 2rem; }
 .winner-card {
   position: relative;

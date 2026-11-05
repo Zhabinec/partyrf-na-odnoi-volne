@@ -63,9 +63,10 @@ function roster(state, scored = false) {
 function slider(label, action) {
   return `<form data-form="${action}" class="scale-form">
     <label class="sr-only" for="scale">${label}</label>
-    <div class="wave-meter">
+    <div class="wave-meter" data-zone="calm">
       <svg viewBox="0 0 400 110" preserveAspectRatio="none" aria-hidden="true">
         <path class="meter-water" d="M0 0Q50 -20 100 0T200 0T300 0T400 0V230H0Z"/>
+        <path class="meter-foam" d="M0 0Q50 -20 100 0T200 0T300 0T400 0"/>
       </svg>
       <output for="scale" id="reading">0%</output>
     </div>
@@ -78,6 +79,11 @@ function slider(label, action) {
 
 function waiting(message) {
   return `<p class="waiting">${message}</p>`;
+}
+
+function receipt(title, message) {
+  return `<div class="answer-receipt" role="status"><span aria-hidden="true">✓</span>
+    <div><strong>${title}</strong><p>${message}</p></div></div>`;
 }
 
 function revealScale(rating, guesses, winners) {
@@ -163,7 +169,7 @@ function roundScreen(state) {
   }
   if (state.phase === 'sealed') {
     return `${kicker('ХОД ' + state.turn.join(' / '))}<h1>Всё, <em>запечатали!</em></h1>
-      <p class="lede">Догадки записаны. Все ответы откроются в финале.</p>`;
+      ${receipt('Догадки под замком', 'Все ответы откроются в финале.')}`;
   }
   if (!state.active) {
     return `${kicker('ПАРТИЯ ИДЁТ')}<h1>Смотри <em>раунд</em></h1>${waiting('Ты сможешь сыграть в следующей партии.')}`;
@@ -171,14 +177,14 @@ function roundScreen(state) {
   if (state.phase === 'rating') {
     return `${kicker('02 / ТАЙНАЯ ОЦЕНКА')}<h1>Как ты к этому <em>относишься?</em></h1>
       <p class="topic">${escape(state.topic)}</p>
-      ${state.done ? waiting('Оценка принята. Ждём остальных.') : slider('Твоё отношение', 'rate')}`;
+      ${state.done ? receipt('Оценка на борту!', 'Ждём, пока остальные поймают волну.') : slider('Твоё отношение', 'rate')}`;
   }
   const turn = state.turn.join(' / ');
   const topic = `<p class="topic">${escape(state.topic)}</p>`;
   return `${kicker('03 / УГАДЫВАНИЕ · ' + turn)}
       <h1>Какую оценку поставил игрок <em>${nameOf(state.subject)}</em>?</h1>${topic}
       ${state.subject === state.me ? waiting('Сейчас угадывают твою оценку.') :
-        state.done ? waiting('Догадка принята. Пока держим интригу.') : slider('Твоя догадка', 'guess')}`;
+        state.done ? receipt('Догадка под замком!', 'Пока держим интригу.') : slider('Твоя догадка', 'guess')}`;
 }
 
 function recap({ subject, rating, guesses, winners, askWhy, debate }, nameOf, me) {

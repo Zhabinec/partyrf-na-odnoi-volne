@@ -246,17 +246,35 @@ app.addEventListener('click', event => {
   }, control);
 });
 
+const waveZones = [
+  [-85, 'storm', 'Ого. Даже спасательный круг не поможет?'],
+  [-15, 'ebb', 'Кажется, отлив. Оставляем так?'],
+  [14, 'calm', 'Прямо посередине? Дипломатично.'],
+  [84, 'swell', 'Так-так, волна пошла!'],
+  [100, 'crest', 'Точно настолько? Тут уже цунами!'],
+];
+let waveImpact;
+
 app.addEventListener('input', event => {
   if (event.target.id !== 'scale') return;
   const rating = Number(event.target.value);
   const value = percent(rating);
   event.target.setAttribute('aria-valuetext', value);
-  document.querySelector('#reading').value = value;
-  document.querySelector('.wave-meter').style.setProperty('--waterline', (50 - rating * .42) + '%');
-  document.querySelector('#host-line').textContent = rating >= 85 ? 'Точно настолько? Тут уже цунами!' :
-    rating <= -85 ? 'Ого. Даже спасательный круг не поможет?' :
-    Math.abs(rating) < 15 ? 'Прямо посередине? Дипломатично.' :
-    rating > 0 ? 'Так-так, волна пошла!' : 'Кажется, отлив. Оставляем так?';
+  const reading = document.querySelector('#reading');
+  const meter = document.querySelector('.wave-meter');
+  reading.value = value;
+  meter.style.setProperty('--waterline', (50 - rating * .42) + '%');
+  const [, zone, line] = waveZones.find(([limit]) => rating <= limit);
+  if (meter.dataset.zone === zone) return;
+  meter.dataset.zone = zone;
+  document.querySelector('#host-line').textContent = line;
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    waveImpact?.cancel();
+    waveImpact = reading.animate(
+      [{ transform: 'scale(.91)' }, { transform: 'scale(1.09)', offset: .48 }, { transform: 'scale(1)' }],
+      { duration: 230, easing: 'ease-out' },
+    );
+  }
 });
 
 async function poll() {
