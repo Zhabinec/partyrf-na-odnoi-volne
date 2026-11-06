@@ -4,6 +4,8 @@ const app = document.querySelector('#app');
 const feedback = document.querySelector('#feedback');
 const roomLabel = document.querySelector('#room-label');
 const leaveRoom = document.querySelector('#leave-room');
+const headerMenu = document.querySelector('#header-menu');
+const menuToggle = headerMenu.querySelector('summary');
 const soundToggle = document.querySelector('#sound-toggle');
 const soundSettings = document.querySelector('#sound-settings');
 const musicLevel = document.querySelector('#music-level');
@@ -109,7 +111,19 @@ async function playEffect(kind) {
 
 soundToggle.addEventListener('click', () => {
   unlockSound();
+  headerMenu.open = false;
   soundSettings.showModal();
+});
+soundSettings.addEventListener('close', () => menuToggle.focus());
+
+document.addEventListener('click', event => {
+  if (headerMenu.open && !headerMenu.contains(event.target)) headerMenu.open = false;
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && headerMenu.open) {
+    headerMenu.open = false;
+    menuToggle.focus();
+  }
 });
 
 function showVolumeLevels() {
@@ -252,6 +266,7 @@ async function sync() {
 
 function showEntrance() {
   updateMusic();
+  headerMenu.open = false;
   roomLabel.textContent = 'ИГРА ДЛЯ КОМПАНИИ';
   leaveRoom.hidden = true;
   app.classList.remove('in-room');
