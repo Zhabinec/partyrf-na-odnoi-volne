@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { act, limits, newGame, tick, view } from './src/game.mjs';
+import { act, limits, newGame, tick, view, publicView, depart } from './src/game.mjs';
 import { addTestBots, runTestBots, testBotsEnabled } from './src/test-bots.mjs';
 
 const rooms = new Map();
@@ -53,6 +53,7 @@ function snapshot(room, player) {
   return {
     ...view(room.game, player.id),
     now, code: room.code, me: player.id, host: room.host,
+    ...(room.host === player.id ? { displayToken: room.displayToken } : {}),
     players: [...room.members.values()]
       .filter(member => room.game.phase !== 'lobby' || !member.left)
       .map(({ id, name }) => ({ id, name })),
@@ -70,7 +71,7 @@ function register(path, body) {
     if (rooms.size >= 500) fail(503, 'Все комнаты заняты. Попробуй позже.');
     let code;
     do { code = randomBytes(3).toString('hex').toUpperCase(); } while (rooms.has(code));
-    room = { code, members: new Map(), game: newGame() };
+    room = { code, displayToken: randomBytes(16).toString("hex"), members: new Map(), game: newGame() };
     rooms.set(code, room);
   } else {
     room = rooms.get(String(body.code).trim().toUpperCase());
@@ -92,6 +93,22 @@ function register(path, body) {
 }
 
 async function api(req, res, path) {
+  const screen = /^\/api\/display\/([0-9A-F]{6})\/([a-f0-9]{32})$/.exec(path);
+  if (screen) {
+    if (req.method !== 'GET') fail(405, 'Общий экран работает только для просмотра.');
+    const room = rooms.get(screen[1]);
+    if (!room || room.displayToken !== screen[2]) fail(404, 'Комната общего экрана закрыта.');
+    const now = Date.now();
+    tick(room.game, now);
+    send(res, 200, { state: {
+      ...publicView(room.game), now, code: room.code, host: room.host, me: null,
+      players: [...room.members.values()]
+        .filter(member => room.game.phase !== 'lobby' || !member.left)
+        .map(({ id, name, left }) => ({ id, name, left })),
+    } });
+    return;
+  }
+
   if (req.method === 'POST' && ['/api/create', '/api/create-test', '/api/join'].includes(path)) {
     send(res, 201, register(path, await readBody(req)));
     return;
@@ -106,6 +123,7 @@ async function api(req, res, path) {
   if (body) {
     if (body.type === 'leave') {
       player.left = true;
+    depart(room.game, player.id, Date.now());
       if (room.game.phase === 'lobby') {
         for (const [token, member] of room.members) {
           if (member.left) room.members.delete(token);

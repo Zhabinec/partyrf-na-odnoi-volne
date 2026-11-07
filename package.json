@@ -1,0 +1,14 @@
+{
+  "name": "na-odnoi-volne",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "На одной волне — сетевой браузерный прототип",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  }
+}

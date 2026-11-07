@@ -110,6 +110,24 @@ function nextTurn(game, now) {
 
 export function tick(game, now, random = Math.random) {
   if (game.deadline !== null && now >= game.deadline) advance(game, now, random);
+  settle(game, now, random);
+}
+
+function required(game) {
+  return (game.active ?? []).filter(id => !game.departed?.includes(id));
+}
+
+function settle(game, now, random = Math.random) {
+  const answers = { topics: game.topics, rating: game.ratings, guessing: game.guesses }[game.phase];
+  if (!answers) return;
+  const players = required(game).filter(id => game.phase !== 'guessing' || id !== game.turns[game.turnIndex]);
+  if (players.every(id => Object.hasOwn(answers, id))) advance(game, now, random);
+}
+
+export function depart(game, id, now) {
+  game.departed ??= [];
+  if (!game.departed.includes(id)) game.departed.push(id);
+  settle(game, now);
 }
 
 export function act(game, { id, isHost, players }, action, now, random = Math.random) {
@@ -135,7 +153,7 @@ export function act(game, { id, isHost, players }, action, now, random = Math.ra
     if (!isHost) return 'Партию запускает хост.';
     if (players.length < limits.minPlayers) return 'Нужно хотя бы три игрока.';
     Object.assign(game, {
-      active: players, topics: {}, assigned: {}, ratings: {}, scores: {},
+      active: players, departed: [], topics: {}, assigned: {}, ratings: {}, scores: {},
       turns: [], guesses: {}, results: [], notice: '', hadDebate: false, highlight: null,
     });
     announce(game, 'topics', now);
@@ -152,7 +170,7 @@ export function act(game, { id, isHost, players }, action, now, random = Math.ra
       return 'Такая тема уже есть. Придумай другую.';
     }
     game.topics[id] = value;
-    if (Object.keys(game.topics).length === game.active.length) advance(game, now, random);
+    settle(game, now, random);
     return;
   }
 
@@ -163,7 +181,7 @@ export function act(game, { id, isHost, players }, action, now, random = Math.ra
   const answers = isRating ? game.ratings : game.guesses;
   if (id in answers) return 'Ответ уже принят.';
   answers[id] = action.value;
-  if (Object.keys(answers).length === game.active.length - Number(isGuess)) advance(game, now, random);
+  settle(game, now, random);
 }
 
 export function view(game, id) {
@@ -192,7 +210,7 @@ export function view(game, id) {
   if (phase === 'topics' || phase === 'rating') {
     const answers = phase === 'topics' ? game.topics : game.ratings;
     data.done = Object.hasOwn(answers, id);
-    data.progress = [Object.keys(answers).length, game.active.length];
+    data.progress = [required(game).filter(player => Object.hasOwn(answers, player)).length, required(game).length];
     if (phase === 'rating') data.topic = game.assigned[id];
     return data;
   }
@@ -200,6 +218,12 @@ export function view(game, id) {
   data.topic = game.assigned[data.subject];
   data.turn = [game.turnIndex + 1, game.turns.length];
   data.done = Object.hasOwn(game.guesses, id);
-  data.progress = [Object.keys(game.guesses).length, game.active.length - 1];
+  const guessers = required(game).filter(player => player !== data.subject);
+  data.progress = [guessers.filter(player => Object.hasOwn(game.guesses, player)).length, guessers.length];
   return data;
+}
+
+export function publicView(game) {
+  const { active, done, topic, ...data } = view(game, null);
+  return { ...data, ...(game.phase === 'guessing' ? { topic } : {}), display: true };
 }

@@ -150,6 +150,16 @@ function revealScale(rating, guesses, winners) {
 
 function roundScreen(state) {
   const nameOf = id => escape(state.players.find(player => player.id === id)?.name ?? 'Игрок');
+  if (state.display && ['topics', 'rating', 'guessing'].includes(state.phase)) {
+    const [title, hint] = {
+      topics: ['Придумайте тему', 'Отправьте темы со своих телефонов.'],
+      rating: ['Секретные оценки', 'Поставьте отношение к своей теме на телефоне. Оценки пока скрыты.'],
+      guessing: ['Как думает ' + nameOf(state.subject) + '?', 'Отметьте догадку на телефоне. Ответы раскроются в финале.'],
+    }[state.phase];
+    return `<section class="show-card">${surfer()}<h1>${title}</h1>
+      ${state.phase === 'guessing' ? '<p class="topic">' + escape(state.topic) + '</p>' : ''}
+      <p>${hint}</p></section>`;
+  }
   if (state.phase === 'intro') {
     const lines = {
       topics: ['РАЗОГРЕВ', 'А теперь —', 'подкиньте тему!', 'Что расколет вашу компанию на два лагеря?'],
@@ -189,6 +199,11 @@ function roundScreen(state) {
     return `${kicker('ЛОББИ · ' + state.players.length + ' / 10')}
       <h1>Собираем<br><em>компанию</em></h1>
       <p class="lede">Отправь друзьям код или ссылку. Для старта нужно минимум три игрока.</p>
+      <details class="rules"><summary>Как играть · 5–10 минут</summary>
+        <ol><li>Каждый пишет тему. Получив случайную тему, тайно ставит отношение от −100% до +100%.</li>
+        <li>На телефоне угадывайте оценку друга. Ближайшая догадка приносит очко, при равенстве — каждому из ближайших.</li>
+        <li>В финале открываются ответы и победитель. Темы и оценки держите в секрете.</li></ol>
+      </details>
       <section class="invite"><strong>${state.code}</strong>${button('Скопировать ссылку', 'copy')}</section>
       <input id="invite-link" class="invite-link" aria-label="Ссылка на комнату" readonly>
       ${roster(state)}
