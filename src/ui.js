@@ -97,9 +97,9 @@ function roster(state, scored = false) {
   const players = scored
     ? state.players.filter(player => player.id in state.scores).sort((a, b) => state.scores[b.id] - state.scores[a.id])
     : state.players;
-  return `<ul class="roster">${players.map(({ id, name }) => `
+  return `<ul class="roster">${players.map(({ id, name, left, disconnected }) => `
     <li><span>${escape(name)} ${id === state.me ? '<small>ты</small>' : ''}</span>
-    <b>${scored ? state.scores[id] : id === state.host ? 'Хост' : 'В комнате'}</b></li>`).join('')}</ul>`;
+    <b>${scored ? state.scores[id] : left ? 'Вышел' : disconnected ? 'Нет связи' : id === state.host ? 'Хост' : 'В комнате'}</b></li>`).join('')}</ul>`;
 }
 
 function slider(label, action) {
@@ -196,7 +196,7 @@ function roundScreen(state) {
           : waiting('Хост перелистнёт, когда все договорят.')}`;
   }
   if (state.phase === 'lobby') {
-    return `${kicker('ЛОББИ · ' + state.players.length + ' / 10')}
+    return `${kicker('ЛОББИ · ' + state.players.filter(player => !player.disconnected).length + ' / 10')}
       <h1>Собираем<br><em>компанию</em></h1>
       <p class="lede">Отправь друзьям код или ссылку. Для старта нужно минимум три игрока.</p>
       <details class="rules"><summary>Как играть · 5–10 минут</summary>
@@ -208,7 +208,7 @@ function roundScreen(state) {
       <input id="invite-link" class="invite-link" aria-label="Ссылка на комнату" readonly>
       ${roster(state)}
       ${state.notice ? waiting(escape(state.notice)) : ''}
-      ${state.host === state.me && state.players.length >= 3 ? button('Начать игру', 'start') : waiting('Ждём старта партии.')}`;
+      ${state.host === state.me && state.players.filter(player => !player.disconnected).length >= 3 ? button('Начать игру', 'start') : waiting('Ждём старта партии.')}`;
   }
   if (state.phase === 'winner') {
     const winners = state.winners.map(nameOf);
@@ -290,6 +290,7 @@ function recap({ rating, guesses, winners, debate }, nameOf, detailed = true) {
 }
 
 export function roomScreen(state) {
+  if (state.spectator) return '<section class="panel round"><section class="round-status"><span id="progress"></span></section><h1>Партия уже идёт</h1><p class="waiting">Ты вернулся после начала новой партии. Дождись финала, чтобы присоединиться к следующей.</p></section>';
   return `<section class="panel round">
     <section class="round-status" aria-label="Время и готовность">
       <span id="progress"></span>
