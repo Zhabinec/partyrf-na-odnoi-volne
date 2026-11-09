@@ -1,17 +1,25 @@
 import { randomUUID } from 'node:crypto';
-import { act } from './game.mjs';
+import { act, limits } from './game.mjs';
 
 export const testBotsEnabled = process.env.TEST_BOTS !== '0';
+export const botLimits = { min: limits.minPlayers - 1, max: limits.maxPlayers - 1, default: 5 };
+export function getBotCount(value = botLimits.default) {
+  return Number.isInteger(value) && value >= botLimits.min && value <= botLimits.max ? value : null;
+}
 const profiles = [
   { name: 'Бот Буй', topic: 'Пицца с ананасом на всех', rating: -83 },
   { name: 'Бот Пена', topic: 'Отпуск по расписанию', rating: 42 },
   { name: 'Бот Риф', topic: 'Голосовое на семь минут', rating: 96 },
   { name: 'Бот Прибой', topic: 'Плавать в море ночью', rating: 65 },
   { name: 'Бот Чайка', topic: 'Мокрые кеды после пляжа', rating: -35 },
+  { name: 'Бот Ракушка', topic: 'Засыпать под шум моря', rating: 80 },
+  { name: 'Бот Маяк', topic: 'Завтракать после обеда', rating: 10 },
+  { name: 'Бот Шторм', topic: 'Заплыв перед дождём', rating: -65 },
+  { name: 'Бот Бриз', topic: 'Выключить телефон на выходные', rating: 30 },
 ];
 
-export function addTestBots(room) {
-  room.testBots = profiles.map(profile => {
+export function addTestBots(room, count = botLimits.default) {
+  room.testBots = profiles.slice(0, count).map(profile => {
     const bot = { ...profile, id: randomUUID() };
     room.members.set(randomUUID(), { id: bot.id, name: bot.name, isBot: true });
     return bot;
