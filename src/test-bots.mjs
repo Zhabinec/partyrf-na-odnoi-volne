@@ -6,6 +6,8 @@ const profiles = [
   { name: 'Бот Буй', topic: 'Пицца с ананасом на всех', rating: -83 },
   { name: 'Бот Пена', topic: 'Отпуск по расписанию', rating: 42 },
   { name: 'Бот Риф', topic: 'Голосовое на семь минут', rating: 96 },
+  { name: 'Бот Прибой', topic: 'Плавать в море ночью', rating: 65 },
+  { name: 'Бот Чайка', topic: 'Мокрые кеды после пляжа', rating: -35 },
 ];
 
 export function addTestBots(room) {
